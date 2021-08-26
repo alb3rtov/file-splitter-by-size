@@ -7,8 +7,6 @@
         "args": [
           "-std=c++17",
           "-g",
-          "-I",
-          "include",
           "${fileWorkspaceFolder}\\src\\main.cpp",
           "-o",
           "${fileWorkspaceFolder}\\exec\\main.exe"
