@@ -33,9 +33,4 @@
 
 # Folders
 tests/
-obj/
-bin/
-
-# Code Blocks
-*.cbp
-*.layout
+exec/

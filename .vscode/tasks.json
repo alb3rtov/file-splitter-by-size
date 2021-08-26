@@ -1,0 +1,29 @@
+{
+    "tasks": [
+      {
+        "type": "cppbuild",
+        "label": "C/C++: g++.exe build active file",
+        "command": "g++.exe",
+        "args": [
+          "-std=c++17",
+          "-g",
+          "-I",
+          "include",
+          "${fileWorkspaceFolder}\\src\\main.cpp",
+          "-o",
+          "${fileWorkspaceFolder}\\exec\\main.exe"
+        ],
+        "options": {
+          "cwd": "${fileDirname}"
+        },
+        "problemMatcher": [
+          "$gcc"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+      }
+    ],
+    "version": "2.0.0"
+  }
