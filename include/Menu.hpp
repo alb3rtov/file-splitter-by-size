@@ -4,13 +4,15 @@
 class Menu
 {
 private:
-    std::vector<std::string> _option_list;
+    std::vector<std::string> _option_vector;
+    std::vector<void (*)()> _function_vector;
     int *_Set;
 
 public:
-    Menu(std::vector<std::string> option_list);
+    Menu(std::vector<std::string> option_vector,  std::vector<void (*)()> function_vector);
 
-    std::vector<std::string> get_option_list();
+    std::vector<std::string> get_option_vector();
+    std::vector<void (*)()> get_function_vector();
     int *get_set();
 
     void display_options();

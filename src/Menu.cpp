@@ -1,26 +1,28 @@
+#ifndef _MENU_
+#define _MENU_
+
 #include <iostream>
 #include <windows.h>
 #include <conio.h>
-#include <vector>
-#include <string>
 
 #include "..\include\Menu.hpp"
 #include "..\include\definitions.hpp"
 
-Menu::Menu(std::vector<std::string> option_list)
+Menu::Menu(std::vector<std::string> option_list, std::vector<void (*)()> function_vector)
 {
-    this->_option_list = option_list;
+    this->_option_vector = option_list;
+    this->_function_vector = function_vector;
     this->_Set = get_set();
 }
 
-std::vector<std::string> Menu::get_option_list()
+std::vector<std::string> Menu::get_option_vector()
 {
-    return this->_option_list;
+    return this->_option_vector;
 }
 
 int *Menu::get_set()
 {
-    int size = this->_option_list.size();
+    int size = this->_option_vector.size();
     int *Set = new int[size];
 
     for (int i = 0; i < size; i++)
@@ -34,11 +36,11 @@ int *Menu::get_set()
 /* Show the options of the menu */
 void Menu::display_options()
 {
-    for (int i = 0; i < this->_option_list.size(); i++)
+    for (int i = 0; i < this->_option_vector.size(); i++)
     {
         gotoxy(10, 10 + i);
         color(this->_Set[i]);
-        std::cout << this->_option_list.at(i);
+        std::cout << this->_option_vector.at(i);
     }
 }
 
@@ -57,7 +59,7 @@ void Menu::gotoxy(int x, int y)
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
 
-
+/* Check last input character from user's keyboard */
 void Menu::check_last_input_character(int &counter, bool &running)
 {
     char key = _getch();
@@ -73,18 +75,16 @@ void Menu::check_last_input_character(int &counter, bool &running)
     }
 
     else if (key == KEY_ENTER)
-    {
-        switch (counter)
-        {
-        case 1:
-            std::cout << "\nMenu 1 is open" << std::endl;
-            break;
-        case 2:
-            std::cout << "\nMenu 2 is open" << std::endl;
-            break;
-        case 3:
-            running = false;
-            break;
+    {   
+        for (int i = 0; i < this->_option_vector.size(); i++) {
+            if (counter == this->_option_vector.size()) {
+                running = false; /* Exit */
+            }
+            else if (counter == i+1) {
+                printf("\x1b[-2F"); // Move to beginning of previous line
+                printf("\x1b[2K"); // Clear entire line                 
+                this->_function_vector.at(i)();
+            }
         }
     }
 }
@@ -92,25 +92,27 @@ void Menu::check_last_input_character(int &counter, bool &running)
 /* Change the color of the menu options depending on the selected one */
 void Menu::change_color_options(int counter)
 {
-    std::vector<int> color_list;
+    std::vector<int> color_vector;
 
-    for (int i = 0; i < this->_option_list.size(); i++) 
+    for (int i = 0; i < this->_option_vector.size(); i++) 
     {
         if (counter == i+1) {
-            color_list.push_back(12);
+            color_vector.push_back(12);
         } else {
-            color_list.push_back(7);
+            color_vector.push_back(7);
         }
     }
 
-    change_color(color_list);
+    change_color(color_vector);
 }
 
 /* Change color option */
-void Menu::change_color(std::vector<int> color_list)
+void Menu::change_color(std::vector<int> color_vector)
 {
-    for (int i = 0; i < this->_option_list.size(); i++)
+    for (int i = 0; i < this->_option_vector.size(); i++)
     {
-        this->_Set[i] = color_list.at(i);
+        this->_Set[i] = color_vector.at(i);
     }
 }
+
+#endif

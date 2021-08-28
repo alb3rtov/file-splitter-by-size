@@ -1,44 +1,96 @@
+#ifndef _MAIN_
+#define _MAIN_
+
 #include <iostream>
 #include <vector>
 #include <string>
-#include <fstream>
-#include <thread>
+#include <tchar.h>
 
-#include "..\src\Menu.cpp"
-#include "..\include\colors.h"
+#include "Menu.cpp"
+#include "MainMFunctions.cpp"
+#include "..\include\colors.hpp"
+#include "..\include\definitions.hpp"
 
-/* Display banner */
-void display_banner()
+void DisplayDriveType(int iParam)
 {
-    std::string line;
-    std::fstream file("banner");
-    system("clear");
-
-    while (getline(file, line))
+    switch (iParam)
     {
-        std::cout << line << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    case DRIVE_UNKNOWN:
+        printf("Drive type unknown.\n");
+        break;
+
+    case DRIVE_NO_ROOT_DIR:
+        printf("No drive for that root path.\n");
+        break;
+
+    case DRIVE_REMOVABLE:
+        printf("Removable drive.\n");
+        break;
+
+    case DRIVE_FIXED:
+        printf("Fixed drive.\n");
+        break;
+
+    case DRIVE_REMOTE:
+        printf("Network drive.\n");
+        break;
+
+    case DRIVE_CDROM:
+        printf("CD ROM drive.\n");
+        break;
+    }
+}
+
+LPCSTR GetString(std::string str)
+{
+    return str.c_str();
+}
+
+void list_removable_drives()
+{
+    TCHAR szBuffer[256];
+    TCHAR *tchPtr = szBuffer;
+    GetLogicalDriveStrings(255, szBuffer);
+
+    TCHAR szDrive[] = _T(" A:");
+    DWORD uDriveMask = GetLogicalDrives();
+
+    if (uDriveMask == 0)
+    {
+        std::cout << "\n\nGetLogicalDrives() failed with failure code: " << GetLastError() << std::endl;
+    }
+
+    else
+    {
+        std::cout << "\n\nThis machine has the following logical drives:\n" << std::endl;
+        while (uDriveMask)
+        {
+            if (uDriveMask & 1)  /* Use the bitwise AND, 1–available, 0-not available */
+            {
+                std::cout << szDrive << " ";
+                DisplayDriveType(GetDriveType(tchPtr));
+                tchPtr += _tcslen(tchPtr) + 1;
+            }
+            ++szDrive[1];
+            uDriveMask >>= 1; /* shift the bitmask binary right */
+        }
     }
 }
 
 /* Main function */
 int main()
 {
-    int counter = 1;
-    bool running = true;
-    std::vector<std::string> option_list = {"1. List USB drives",
-                                            "2. Make a copy",
-                                            "3. Quit"};
-    Menu main_menu(option_list);
-    display_banner();
+    std::vector<std::string> option_vector = {"1. List USB drives",
+                                              "2. Make a copy",
+                                              "3. Quit"};
+    std::vector<void (*)()> function_vector;
 
-    while (running)
-    {
-        main_menu.display_options();
-        main_menu.check_last_input_character(counter, running);
-        main_menu.change_color_options(counter);
-    }
+    function_vector.push_back(list_removable_drives);
+    function_vector.push_back(funcion2);
 
-    std::cout << WHITE << std::endl;
-    system("clear");
+    Menu main_menu(option_vector, function_vector);
+    display_banner(true);
+    create_generic_menu(main_menu);
 }
+
+#endif
