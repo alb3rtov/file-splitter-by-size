@@ -7,72 +7,86 @@
 #include <tchar.h>
 
 #include "Menu.cpp"
-#include "MainMFunctions.cpp"
 #include "..\include\colors.hpp"
 #include "..\include\definitions.hpp"
 
+/* Generate make copy menu */
+void make_copy_menu() {
+    std::vector<std::string> option_vector = {"1. Cozas1",
+                                            "2. Cozas12",
+                                            "3. Cozas123",
+                                            "4. Back"};
+    std::vector<void (*)()> function_vector;
+
+    //function_vector.push_back(function12);
+    //function_vector.push_back(function13);
+    //function_vector.push_back(function12);
+
+    Menu second_menu(option_vector, function_vector);
+    display_banner(false);
+    create_generic_menu(second_menu);
+    display_banner(false);
+}
+
+/* Get type of drive */
 void DisplayDriveType(int iParam)
 {
     switch (iParam)
     {
     case DRIVE_UNKNOWN:
-        printf("Drive type unknown.\n");
+        std::cout << "Drive type unknown" << std::endl;
         break;
 
     case DRIVE_NO_ROOT_DIR:
-        printf("No drive for that root path.\n");
+        std::cout << "No drive for that root path" << std::endl;
         break;
 
     case DRIVE_REMOVABLE:
-        printf("Removable drive.\n");
+        std::cout << "Removable drive" << std::endl;
         break;
 
     case DRIVE_FIXED:
-        printf("Fixed drive.\n");
+        std::cout << "Fixed drive" << std::endl;
         break;
 
     case DRIVE_REMOTE:
-        printf("Network drive.\n");
+        std::cout << "Network drive" << std::endl;
         break;
 
     case DRIVE_CDROM:
-        printf("CD ROM drive.\n");
+        std::cout << "CD ROM drive" << std::endl;
         break;
     }
 }
 
-LPCSTR GetString(std::string str)
+/* Display all logical drives information of the machine */
+void list_drives()
 {
-    return str.c_str();
-}
+    TCHAR sz_buffer[256];
+    TCHAR *tch_ptr = sz_buffer;
+    GetLogicalDriveStrings(255, sz_buffer);
 
-void list_removable_drives()
-{
-    TCHAR szBuffer[256];
-    TCHAR *tchPtr = szBuffer;
-    GetLogicalDriveStrings(255, szBuffer);
+    TCHAR sz_drive[] = _T(" A:");
+    DWORD u_drive_mask = GetLogicalDrives();
 
-    TCHAR szDrive[] = _T(" A:");
-    DWORD uDriveMask = GetLogicalDrives();
-
-    if (uDriveMask == 0)
+    if (u_drive_mask == 0)
     {
-        std::cout << "\n\nGetLogicalDrives() failed with failure code: " << GetLastError() << std::endl;
+        std::cout << "GetLogicalDrives() failed with failure code: " << GetLastError() << std::endl;
     }
 
     else
     {
-        std::cout << "\n\nThis machine has the following logical drives:\n" << std::endl;
-        while (uDriveMask)
+        std::cout << "This machine has the following logical drives:\n" << std::endl;
+        while (u_drive_mask)
         {
-            if (uDriveMask & 1)  /* Use the bitwise AND, 1–available, 0-not available */
+            if (u_drive_mask & 1)  /* Use the bitwise AND, 1–available, 0-not available */
             {
-                std::cout << szDrive << " ";
-                DisplayDriveType(GetDriveType(tchPtr));
-                tchPtr += _tcslen(tchPtr) + 1;
+                std::cout << sz_drive << " ";
+                DisplayDriveType(GetDriveType(tch_ptr));
+                tch_ptr += _tcslen(tch_ptr) + 1;
             }
-            ++szDrive[1];
-            uDriveMask >>= 1; /* shift the bitmask binary right */
+            ++sz_drive[1];
+            u_drive_mask >>= 1; /* shift the bitmask binary right */
         }
     }
 }
@@ -85,8 +99,8 @@ int main()
                                               "3. Quit"};
     std::vector<void (*)()> function_vector;
 
-    function_vector.push_back(list_removable_drives);
-    function_vector.push_back(funcion2);
+    function_vector.push_back(list_drives);
+    function_vector.push_back(make_copy_menu);
 
     Menu main_menu(option_vector, function_vector);
     display_banner(true);

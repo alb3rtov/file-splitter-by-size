@@ -64,12 +64,12 @@ void Menu::check_last_input_character(int &counter, bool &running)
 {
     char key = _getch();
 
-    if (key == KEY_UP && (counter >= 2 && counter <= 3))
+    if (key == KEY_UP && (counter >= 2 && counter <= this->_option_vector.size()))
     {
         counter--;
     }
 
-    else if (key == KEY_DOWN && (counter >= 1 && counter <= 2))
+    else if (key == KEY_DOWN && (counter >= 1 && counter <= this->_option_vector.size()-1))
     {
         counter++;
     }
@@ -81,8 +81,9 @@ void Menu::check_last_input_character(int &counter, bool &running)
                 running = false; /* Exit */
             }
             else if (counter == i+1) {
-                printf("\x1b[-2F"); // Move to beginning of previous line
-                printf("\x1b[2K"); // Clear entire line                 
+                system("clear");
+                display_banner(false);
+                gotoxy(0,12 + this->_option_vector.size());               
                 this->_function_vector.at(i)();
             }
         }

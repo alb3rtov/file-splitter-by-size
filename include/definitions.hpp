@@ -11,7 +11,6 @@
 #define KEY_DOWN 80    //Down arrow character
 #define KEY_ENTER '\r' //Enter key character
 
-
 /* Generate menu based on a Menu object */
 void create_generic_menu(Menu menu) 
 {
