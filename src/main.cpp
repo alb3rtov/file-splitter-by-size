@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <tchar.h>
+#include <iomanip>
 
 #include "Menu.cpp"
 #include "..\include\colors.hpp"
@@ -69,6 +70,17 @@ void list_drives()
     TCHAR sz_drive[] = _T(" A:");
     DWORD u_drive_mask = GetLogicalDrives();
 
+    TCHAR tchVolumeNameBuff[MAX_PATH + 1];
+    DWORD dwSerialNumber, dwMaxCompLength;
+
+    ULARGE_INTEGER FreeBytesAvailable = {0};
+    ULARGE_INTEGER TotalNumberOfBytes={0};
+    ULARGE_INTEGER TotalNumberOfFreeBytes={0};
+
+	double kb = 0;
+	double mb = 0;
+	double gb = 0;
+
     if (u_drive_mask == 0)
     {
         std::cout << "GetLogicalDrives() failed with failure code: " << GetLastError() << std::endl;
@@ -77,11 +89,23 @@ void list_drives()
     else
     {
         std::cout << "This machine has the following logical drives:\n" << std::endl;
+        std::cout << "Drive letter\tLabel\t\tTotal space\t\tDrive type" << std::endl;
+        std::cout << "-----------------------------------------------------------------------" << std::endl;
         while (u_drive_mask)
         {
             if (u_drive_mask & 1)  /* Use the bitwise AND, 1–available, 0-not available */
             {
-                std::cout << sz_drive << " ";
+                std::cout << sz_drive << "\t\t";
+
+                GetVolumeInformation(tch_ptr, tchVolumeNameBuff, MAX_PATH + 1, &dwSerialNumber, &dwMaxCompLength, NULL, NULL, 0);
+                std::cout << tchVolumeNameBuff << "\t\t";
+
+                GetDiskFreeSpaceEx(tch_ptr,&FreeBytesAvailable,&TotalNumberOfBytes,&TotalNumberOfFreeBytes);
+               	kb = TotalNumberOfBytes.QuadPart/1024;
+                mb = kb/1024;
+                gb = mb/1024;
+                std::cout << std::fixed << std::setprecision(2) << gb << " GB   " << "\t\t";
+
                 DisplayDriveType(GetDriveType(tch_ptr));
                 tch_ptr += _tcslen(tch_ptr) + 1;
             }
