@@ -7,6 +7,7 @@
 
 #include "..\include\Menu.hpp"
 #include "..\include\definitions.hpp"
+#include "..\src\copy_functions.cpp"
 
 Menu::Menu(std::vector<std::string> option_list, std::vector<void (*)()> function_vector)
 {

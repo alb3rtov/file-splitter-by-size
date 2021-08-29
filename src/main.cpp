@@ -12,6 +12,29 @@
 #include "..\include\colors.hpp"
 #include "..\include\definitions.hpp"
 
+/* Generate menu based on a Menu object */
+void create_generic_menu(Menu menu, bool move_output) 
+{
+    int counter = 1;
+    bool running = true;
+    bool first_iteration = true;
+
+    while (running)
+    {  
+        if (first_iteration) 
+        {
+            first_iteration = false;
+            check_current_attrs_values();
+        }
+        menu.display_options();
+        menu.check_last_input_character(counter, running, move_output);
+        menu.change_color_options(counter);
+    }
+
+    std::cout << WHITE << std::endl;
+    system("clear");
+}
+
 /* Generate make copy menu */
 void make_copy_menu() {
     std::vector<std::string> option_vector = {"1. Select drive letter to backup",
