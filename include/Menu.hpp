@@ -18,7 +18,7 @@ public:
     void display_options();
     void color(int color);
     void gotoxy(int x, int y);
-    void check_last_input_character(int &counter, bool &running);
+    void check_last_input_character(int &counter, bool &running, bool move_output);
     void change_color_options(int counter);
     void change_color(std::vector<int> color_list);
 };

@@ -60,7 +60,7 @@ void Menu::gotoxy(int x, int y)
 }
 
 /* Check last input character from user's keyboard */
-void Menu::check_last_input_character(int &counter, bool &running)
+void Menu::check_last_input_character(int &counter, bool &running, bool move_output)
 {
     char key = _getch();
 
@@ -81,9 +81,11 @@ void Menu::check_last_input_character(int &counter, bool &running)
                 running = false; /* Exit */
             }
             else if (counter == i+1) {
-                system("clear");
-                display_banner(false);
-                gotoxy(0,12 + this->_option_vector.size());               
+                clear_display_banner_and_menu();
+                if (move_output) {
+                    gotoxy(0,12 + this->_option_vector.size());  
+                }
+                             
                 this->_function_vector.at(i)();
             }
         }
