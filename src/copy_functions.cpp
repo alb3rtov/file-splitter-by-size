@@ -6,12 +6,12 @@
 #include <regex>
 #include <sys/stat.h>
 #include <filesystem>
+#include <math.h>
 
 #include "..\include\definitions.hpp"
 
 std::string drive_letter;
 std::string directory_path;
-std::string maximum_space;
 
 /* Check all attributes values to print if contain smth */
 void check_current_attrs_values()
@@ -27,11 +27,6 @@ void check_current_attrs_values()
     if (!directory_path.empty())
     {
         std::cout << BHIYELLOW << "\nCurrent selected directory path: " << directory_path;
-    }
-
-    if (!maximum_space.empty())
-    {
-        std::cout << BHIYELLOW << "\nCurrent selected maximum space: " << maximum_space << " GB";
     }
 }
 
@@ -51,6 +46,7 @@ void select_drive_letter()
         std::cin >> drive_letter;
     } while (!std::regex_match(drive_letter, std::regex("[A-Za-z]")) && (drive_letter.size() != 1));
     drive_letter.append(":\\");
+    drive_letter.append("\\");
 
     clear_display_banner_and_menu();
     check_current_attrs_values();
@@ -61,7 +57,7 @@ void select_directory()
 {
     do
     {
-        std::cout << "Select directory: ";
+        std::cout << "\nSelect directory (i.e.: D:\\Data ): ";
         std::cin >> directory_path;
     } while (!is_path_exist(directory_path));
 
@@ -69,21 +65,9 @@ void select_directory()
     check_current_attrs_values();
 }
 
-/* Request maximum space for the backup to user */
-void select_maximum_space()
-{
-    do
-    {
-        std::cout << "Select maximum space (no decimals): ";
-        std::cin >> maximum_space;
-    } while (!std::regex_match(maximum_space, std::regex("[[:digit:]]+")));
-
-    clear_display_banner_and_menu();
-    check_current_attrs_values();
-}
-
 /* List all files in directory and sub-directories */
-long long int list_all_files(std::string directory_path, std::vector<std::string> &files)
+long long int list_all_files(std::string directory_path, std::vector<std::string> &files,
+                             std::vector<long long int> &files_sizes, std::vector<std::string> &directories)
 {
     long long int total_size = 0;
     std::string path;
@@ -94,11 +78,13 @@ long long int list_all_files(std::string directory_path, std::vector<std::string
 
         if (std::filesystem::is_directory(path))
         {
-            total_size = total_size + list_all_files(path, files);
+            directories.push_back(path);
+            total_size = total_size + list_all_files(path, files, files_sizes, directories);
         }
         else
         {
             files.push_back(path);
+            files_sizes.push_back(std::filesystem::file_size(path));
             //std::cout << path << "  " << std::filesystem::file_size(path) << std::endl;
             total_size = total_size + std::filesystem::file_size(path);
         }
@@ -107,27 +93,135 @@ long long int list_all_files(std::string directory_path, std::vector<std::string
     return total_size;
 }
 
-/* Main function to make copy */
-void make_copy()
-{   
-    std::vector<std::string> files;
-    long long int size = 0;
+/* Generate current vector with files */
+void generate_current_vector_files(std::vector<std::string> &current_files, std::vector<std::string> &files,
+                                   std::vector<long long int> &files_sizes, long long int total_number_of_free_bytes)
+{
+    long long int total_files_sizes = 0;
 
-    std::cout << "\n\n\n\n\n\n\n" << std::endl;
-
-    if (!drive_letter.empty() && !directory_path.empty() && !maximum_space.empty())
+    while (!files.empty())
     {
-        size = list_all_files(directory_path, files);
-        std::cout << "Total size: " << size << " bytes" << std::endl;
-        /*
-        if (!CopyFileA(prueba.c_str(), "F:\\Bomb-Defusal-Manual.pdf", 0))
+
+        std::string current_file = files.at(0);
+        long long current_size = files_sizes.at(0);
+        total_files_sizes = total_files_sizes + current_size;
+
+        if (total_files_sizes >= total_number_of_free_bytes)
         {
-            std::cout << "Error: " << GetLastError() << std::endl;
+            total_files_sizes = total_files_sizes - current_size;
+            break;
         }
         else
         {
-            std::cout << "Okay " << std::endl;
-        }*/
+            files.erase(files.begin());
+            files_sizes.erase(files_sizes.begin());
+            current_files.push_back(current_file);
+        }
+    }
+}
+
+/* Get number where last backslash of the path is */
+int get_num_real_directory(std::string directory_path)
+{
+    int i = 0;
+    for (i = directory_path.size() - 1; i >= 0; i--)
+    {
+        if (directory_path[i] == '\\')
+        {
+            break;
+        }
+    }
+    return i;
+}
+
+/* Generate the directory structure on USB drive selected */
+void generate_directories_structure(int num, std::vector<std::string> directories)
+{
+    std::string main_path = drive_letter.substr(0, 2).append(directory_path.substr(num, directory_path.size() - 1));
+
+    if (!CreateDirectoryA(main_path.c_str(), 0))
+    {
+        if (GetLastError() != ERROR_ALREADY_EXISTS)
+        {
+            std::cout << "Error: " << GetLastError() << std::endl;
+        }
+    }
+
+    for (int i = 0; i < directories.size(); i++)
+    {
+        std::string new_path = drive_letter.substr(0, 2).append(directories.at(i).substr(num, directories.at(i).size() - 1));
+        if (!CreateDirectoryA(new_path.c_str(), 0))
+        {
+            if (GetLastError() != ERROR_ALREADY_EXISTS)
+            {
+                std::cout << "Error: " << GetLastError() << std::endl;
+            }
+        }
+    }
+}
+
+/* Generate the new path for files on USB drive */
+std::string generate_path_file_backup(std::string current_path, int num) {
+    
+    std::string new_path = drive_letter.substr(0,2).append(current_path.substr(num, current_path.size()-1));
+    return new_path;
+}
+
+/* Perform the copy of current files on the vector */
+void copy_files(std::vector<std::string> current_files, int num)
+{
+    for (int i = 0; i < current_files.size(); i++)
+    {       
+        if (!CopyFileA(current_files.at(i).c_str(), generate_path_file_backup(current_files.at(i), num).c_str(), 0))
+        {
+            std::cout << "Error: " << GetLastError() << std::endl;
+        }
+    }
+}
+
+/* Main function to make copy */
+void make_copy()
+{
+    long long int size = 0;
+    int iterations = 0;
+    ULARGE_INTEGER total_number_of_free_bytes = {0};
+    std::vector<std::string> files;
+    std::vector<std::string> directories;
+    std::vector<long long int> files_sizes;
+
+    std::cout << "\n\n\n\n\n\n\n"
+              << std::endl;
+
+    if (!drive_letter.empty() && !directory_path.empty())
+    {
+        size = list_all_files(directory_path, files, files_sizes, directories);
+        double kb_size = size / 1024;
+        double mb_size = kb_size / 1024;
+        double gb_size = mb_size / 1024;
+        std::cout << "Total size: " << std::fixed << std::setprecision(2) << gb_size << " GB" << std::endl;
+
+        GetDiskFreeSpaceExA(drive_letter.c_str(), NULL, NULL, &total_number_of_free_bytes);
+        double gb_drive = convert_to_gigabytes(total_number_of_free_bytes);
+        double num_division = gb_size / gb_drive;
+
+        if (num_division <= 1)
+        {
+            iterations = 1;
+        }
+        else
+        {
+            iterations = ceil(num_division);
+        }
+
+        int num = get_num_real_directory(directory_path);
+
+        for (int i = 0; i < iterations; i++)
+        {
+            std::vector<std::string> current_files;
+            generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
+            generate_directories_structure(num, directories);
+            copy_files(current_files, num);
+        }
     }
     else
     {

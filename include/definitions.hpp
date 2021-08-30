@@ -12,6 +12,19 @@
 #define KEY_DOWN 80         /* Down arrow character */
 #define KEY_ENTER '\r'      /* Enter key character */
 
+/* Returns a double of conversion of bytes to GB */
+double convert_to_gigabytes(ULARGE_INTEGER total_bytes) {
+    double kb = 0;
+	double mb = 0;
+	double gb = 0;
+
+    kb = total_bytes.QuadPart/1024;
+    mb = kb/1024;
+    gb = mb/1024;
+
+    return gb;
+}
+
 /* Display banner */
 void display_banner(bool slow)
 {

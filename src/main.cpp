@@ -39,14 +39,12 @@ void create_generic_menu(Menu menu, bool move_output)
 void make_copy_menu() {
     std::vector<std::string> option_vector = {"1. Select drive letter to backup",
                                             "2. Select directory to copy",
-                                            "3. Select the maximum space (GB)",
-                                            "4. Make copy",
-                                            "5. Back"};
+                                            "3. Make copy",
+                                            "4. Back"};
     std::vector<void (*)()> function_vector;
 
     function_vector.push_back(select_drive_letter);
     function_vector.push_back(select_directory);
-    function_vector.push_back(select_maximum_space);
     function_vector.push_back(make_copy);
 
     Menu second_menu(option_vector, function_vector);
@@ -84,19 +82,6 @@ void DisplayDriveType(int iParam)
         std::cout << "CD ROM drive" << std::endl;
         break;
     }
-}
-
-/* Returns a double of conversion of bytes to GB */
-double convert_to_gigabytes(ULARGE_INTEGER total_bytes) {
-    double kb = 0;
-	double mb = 0;
-	double gb = 0;
-
-    kb = total_bytes.QuadPart/1024;
-    mb = kb/1024;
-    gb = mb/1024;
-
-    return gb;
 }
 
 /* Display all logical drives information of the machine */
