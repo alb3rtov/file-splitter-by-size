@@ -1,10 +1,13 @@
 # File splitter by size
 This script will divide in folders a selected set data by a given size. Very useful for perform backups in a limited USB flash drives.
 
-# Win32 API
-This program only works for Windows OS because it's use the [Win32 API](https://docs.microsoft.com/en-us/windows/win32/api/).
+## How to use
+The main use of this program is for perfom backups to others machines using USB flash drives that doesn't have enough space to storage all the data, so you will have manually select the files and directories that suit into the USB drive and repeat this until all data is copied. This program split the files and directories in diferent folders in a logical way, that is the folders structure will not change, the program just read all the files and selected until the maximum size indicated by the user. Also it can perform the copies.
 
-# Compile and run
+### Win32 API
+This program only works for Windows OS because it's use the [Win32 API](https://docs.microsoft.com/en-us/windows/win32/api/) for some funcionalities. Maybe in the future I will code it for Linux systems.
+
+## Compile and run
 In order to compile C++ code on a Windows OS, you need the `g++` compiler.
 - First, download the [Portable C and C++ Development Kit for x64 Windows](https://github.com/skeeto/w64devkit/releases) made by [skeeto](https://github.com/skeeto/).
 - Unzip the ZIP file in your `C: drive`.
@@ -24,7 +27,5 @@ Now in order to compile and execute the program, type this commands:
     g++ -std=c++17 -g -I include src\main.cpp -o exec\main.exe
     .\exec\main.exe
 
-
-
-# Releases
-https://github.com/alb3rtov/file-splitter-by-size/releases
+## Releases
+You can donwload an already compiled versions from [releases page](https://github.com/alb3rtov/file-splitter-by-size/releases).

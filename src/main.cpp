@@ -40,12 +40,14 @@ void make_copy_menu() {
     std::vector<std::string> option_vector = {"1. Select drive letter to backup",
                                             "2. Select directory to copy",
                                             "3. Select the maximum space (GB)",
-                                            "4. Back"};
+                                            "4. Make copy",
+                                            "5. Back"};
     std::vector<void (*)()> function_vector;
 
     function_vector.push_back(select_drive_letter);
     function_vector.push_back(select_directory);
     function_vector.push_back(select_maximum_space);
+    function_vector.push_back(make_copy);
 
     Menu second_menu(option_vector, function_vector);
     display_banner(false);
