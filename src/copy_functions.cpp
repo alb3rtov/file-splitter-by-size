@@ -161,21 +161,41 @@ void generate_directories_structure(int num, std::vector<std::string> directorie
 }
 
 /* Generate the new path for files on USB drive */
-std::string generate_path_file_backup(std::string current_path, int num) {
-    
-    std::string new_path = drive_letter.substr(0,2).append(current_path.substr(num, current_path.size()-1));
+std::string generate_path_file_backup(std::string current_path, int num)
+{
+    std::string new_path = drive_letter.substr(0, 2).append(current_path.substr(num, current_path.size() - 1));
     return new_path;
 }
 
-/* Perform the copy of current files on the vector */
-void copy_files(std::vector<std::string> current_files, int num)
+/* Generate a percentage of the current copy process */
+void generate_dynamic_percentage(double gb_size, long long int current_filesize, double &percentage)
 {
+    double kb_current_file_size = current_filesize / 1024;
+    double mb_current_file_size = kb_current_file_size / 1024;
+    double gb_current_file_size = mb_current_file_size / 1024;
+
+    percentage = percentage + (gb_current_file_size*100)/gb_size;
+    std::cout << "Progress: " << std::fixed << std::setprecision(2) << percentage << " %\r";
+}
+
+/* Perform the copy of current files on the vector */
+void copy_files(std::vector<std::string> current_files, std::vector<long long int> files_sizes_aux, int num, double gb_size, int &index)
+{
+    double percentage = 0;
+
     for (int i = 0; i < current_files.size(); i++)
-    {       
-        if (!CopyFileA(current_files.at(i).c_str(), generate_path_file_backup(current_files.at(i), num).c_str(), 0))
+    {
+        std::string new_path_file = generate_path_file_backup(current_files.at(i), num);
+
+        //GENERATE PROGRESS BAR AND SHOW WHAT FILES HAVE BEEN COPIED
+        //std::cout << "Copying file " << new_path_file << " - ";
+        generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage);
+        
+        if (!CopyFileA(current_files.at(i).c_str(), new_path_file.c_str(), 0))
         {
             std::cout << "Error: " << GetLastError() << std::endl;
         }
+        index++;
     }
 }
 
@@ -188,45 +208,45 @@ void make_copy()
     std::vector<std::string> files;
     std::vector<std::string> directories;
     std::vector<long long int> files_sizes;
-
-    std::cout << "\n\n\n\n\n\n\n"
-              << std::endl;
+    std::vector<long long int> files_sizes_aux;
 
     if (!drive_letter.empty() && !directory_path.empty())
     {
         size = list_all_files(directory_path, files, files_sizes, directories);
+
+        for (int i = 0; i < files_sizes.size(); i++) {
+            files_sizes_aux.push_back(files_sizes.at(i));
+        }
+
         double kb_size = size / 1024;
         double mb_size = kb_size / 1024;
         double gb_size = mb_size / 1024;
-        std::cout << "Total size: " << std::fixed << std::setprecision(2) << gb_size << " GB" << std::endl;
+        std::cout << "\nTotal size: " << std::fixed << std::setprecision(2) << gb_size << " GB" << std::endl;
 
         GetDiskFreeSpaceExA(drive_letter.c_str(), NULL, NULL, &total_number_of_free_bytes);
         double gb_drive = convert_to_gigabytes(total_number_of_free_bytes);
         double num_division = gb_size / gb_drive;
 
-        if (num_division <= 1)
-        {
-            iterations = 1;
-        }
-        else
-        {
-            iterations = ceil(num_division);
-        }
+        iterations = (num_division <= 1) ? 1 : ceil(num_division);
 
         int num = get_num_real_directory(directory_path);
-
+        //std::cout << iterations << std::endl;
+        int index = 0;
         for (int i = 0; i < iterations; i++)
         {
             std::vector<std::string> current_files;
             generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
             generate_directories_structure(num, directories);
-            copy_files(current_files, num);
+            copy_files(current_files, files_sizes_aux, num, gb_size, index);
         }
     }
     else
     {
         std::cout << BHIRED << "\nYou need to select a drive letter, a directory and a maximum space." << std::endl;
     }
+
+    clear_display_banner_and_menu();
+    check_current_attrs_values();
 }
 
 #endif
