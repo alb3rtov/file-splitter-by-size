@@ -7,11 +7,13 @@
 #include <sys/stat.h>
 #include <filesystem>
 #include <math.h>
+#include <limits>
 
 #include "..\include\definitions.hpp"
 
 std::string drive_letter;
 std::string directory_path;
+bool first_time = true;
 
 /* Check all attributes values to print if contain smth */
 void check_current_attrs_values()
@@ -94,8 +96,8 @@ long long int list_all_files(std::string directory_path, std::vector<std::string
 }
 
 /* Generate current vector with files */
-void generate_current_vector_files(std::vector<std::string> &current_files, std::vector<std::string> &files,
-                                   std::vector<long long int> &files_sizes, long long int total_number_of_free_bytes)
+long long int generate_current_vector_files(std::vector<std::string> &current_files, std::vector<std::string> &files,
+                                            std::vector<long long int> &files_sizes, long long int total_number_of_free_bytes)
 {
     long long int total_files_sizes = 0;
 
@@ -118,6 +120,8 @@ void generate_current_vector_files(std::vector<std::string> &current_files, std:
             current_files.push_back(current_file);
         }
     }
+
+    return total_files_sizes;
 }
 
 /* Get number where last backslash of the path is */
@@ -174,7 +178,7 @@ void generate_dynamic_percentage(double gb_size, long long int current_filesize,
     double mb_current_file_size = kb_current_file_size / 1024;
     double gb_current_file_size = mb_current_file_size / 1024;
 
-    percentage = percentage + (gb_current_file_size*100)/gb_size;
+    percentage = percentage + (gb_current_file_size * 100) / gb_size;
     std::cout << "Progress: " << std::fixed << std::setprecision(2) << percentage << " %\r";
 }
 
@@ -190,7 +194,7 @@ void copy_files(std::vector<std::string> current_files, std::vector<long long in
         //GENERATE PROGRESS BAR AND SHOW WHAT FILES HAVE BEEN COPIED
         //std::cout << "Copying file " << new_path_file << " - ";
         generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage);
-        
+
         if (!CopyFileA(current_files.at(i).c_str(), new_path_file.c_str(), 0))
         {
             std::cout << "Error: " << GetLastError() << std::endl;
@@ -199,11 +203,35 @@ void copy_files(std::vector<std::string> current_files, std::vector<long long in
     }
 }
 
+void pause(double gb_size, long long current_size, bool flag)
+{
+    double cc_kb_size = current_size / 1024;
+    double cc_mb_size = cc_kb_size / 1024;
+    double cc_gb_size = cc_mb_size / 1024;
+
+    std::cout << "The copy process is finished." << std::endl;
+    std::cout << cc_gb_size << " of " << gb_size << " GB has been copied" << std::endl;
+    std::cout << "Now, you can extract the drive " + drive_letter << std::endl;
+    
+    /* Check if USB drive has enough space (new function) */
+    if (flag)
+    {
+        std::cout << "All copies have been completed successfully" << std::endl;
+        std::cout << "Press enter to exit";
+    }
+    else
+    {
+        std::cout << "Before continue copying the next files, make sure you have delete the previous copy" << std::endl;
+        std::cout << "Press enter to continue";
+    }
+
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+}
+
 /* Main function to make copy */
 void make_copy()
 {
     long long int size = 0;
-    int iterations = 0;
     ULARGE_INTEGER total_number_of_free_bytes = {0};
     std::vector<std::string> files;
     std::vector<std::string> directories;
@@ -214,7 +242,8 @@ void make_copy()
     {
         size = list_all_files(directory_path, files, files_sizes, directories);
 
-        for (int i = 0; i < files_sizes.size(); i++) {
+        for (int i = 0; i < files_sizes.size(); i++)
+        {
             files_sizes_aux.push_back(files_sizes.at(i));
         }
 
@@ -225,19 +254,31 @@ void make_copy()
 
         GetDiskFreeSpaceExA(drive_letter.c_str(), NULL, NULL, &total_number_of_free_bytes);
         double gb_drive = convert_to_gigabytes(total_number_of_free_bytes);
-        double num_division = gb_size / gb_drive;
-
-        iterations = (num_division <= 1) ? 1 : ceil(num_division);
-
         int num = get_num_real_directory(directory_path);
-        //std::cout << iterations << std::endl;
+
         int index = 0;
-        for (int i = 0; i < iterations; i++)
+        long long int current_size = 0;
+        bool end = false;
+        bool flag = false;
+
+        if (first_time) {
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+            first_time = false;
+        }
+                
+        while (!end)
         {
             std::vector<std::string> current_files;
-            generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
+            current_size = current_size + generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
             generate_directories_structure(num, directories);
             copy_files(current_files, files_sizes_aux, num, gb_size, index);
+            if (current_size >= size)
+            {
+                end = true;
+                flag = true;
+            }
+
+            pause(gb_size, current_size, flag);
         }
     }
     else
