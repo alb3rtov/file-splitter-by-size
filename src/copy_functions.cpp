@@ -172,28 +172,39 @@ std::string generate_path_file_backup(std::string current_path, int num)
 }
 
 /* Generate a percentage of the current copy process */
-void generate_dynamic_percentage(double gb_size, long long int current_filesize, double &percentage)
+void generate_dynamic_percentage(double gb_size, long long int current_filesize, double &percentage, std::string new_path_file, bool &first_time)
 {
     double kb_current_file_size = current_filesize / 1024;
     double mb_current_file_size = kb_current_file_size / 1024;
     double gb_current_file_size = mb_current_file_size / 1024;
 
     percentage = percentage + (gb_current_file_size * 100) / gb_size;
-    std::cout << "Progress: " << std::fixed << std::setprecision(2) << percentage << " %\r";
+
+    if (first_time)
+    {
+        first_time = false;
+        std::cout << "Progress: " << std::fixed << std::setprecision(2) << percentage << " %" << std::endl;
+        std::cout << "Copying file " << new_path_file << std::endl;
+    }
+    else
+    {   
+        std::cout << "\033[FCopying file " << new_path_file;
+        std::cout << "\033[FProgress: " << std::fixed << std::setprecision(2) << percentage << " %\n\n";
+    }
 }
 
 /* Perform the copy of current files on the vector */
 void copy_files(std::vector<std::string> current_files, std::vector<long long int> files_sizes_aux, int num, double gb_size, int &index)
 {
     double percentage = 0;
+    bool first_time = true;
 
     for (int i = 0; i < current_files.size(); i++)
     {
         std::string new_path_file = generate_path_file_backup(current_files.at(i), num);
 
         //GENERATE PROGRESS BAR AND SHOW WHAT FILES HAVE BEEN COPIED
-        //std::cout << "Copying file " << new_path_file << " - ";
-        generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage);
+        generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage, new_path_file, first_time);
 
         if (!CopyFileA(current_files.at(i).c_str(), new_path_file.c_str(), 0))
         {
@@ -201,6 +212,7 @@ void copy_files(std::vector<std::string> current_files, std::vector<long long in
         }
         index++;
     }
+    std::cout << "\n";
 }
 
 void pause(double gb_size, long long current_size, bool flag)
@@ -212,7 +224,7 @@ void pause(double gb_size, long long current_size, bool flag)
     std::cout << "The copy process is finished." << std::endl;
     std::cout << cc_gb_size << " of " << gb_size << " GB has been copied" << std::endl;
     std::cout << "Now, you can extract the drive " + drive_letter << std::endl;
-    
+
     /* Check if USB drive has enough space (new function) */
     if (flag)
     {
@@ -222,10 +234,10 @@ void pause(double gb_size, long long current_size, bool flag)
     else
     {
         std::cout << "Before continue copying the next files, make sure you have delete the previous copy" << std::endl;
-        std::cout << "Press enter to continue";
+        std::cout << "\nPress enter to continue";
     }
 
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
 /* Main function to make copy */
@@ -250,7 +262,7 @@ void make_copy()
         double kb_size = size / 1024;
         double mb_size = kb_size / 1024;
         double gb_size = mb_size / 1024;
-        std::cout << "\nTotal size: " << std::fixed << std::setprecision(2) << gb_size << " GB" << std::endl;
+        std::cout << "\nTotal size: " << std::fixed << std::setprecision(2) << gb_size << " GB\n" << std::endl;
 
         GetDiskFreeSpaceExA(drive_letter.c_str(), NULL, NULL, &total_number_of_free_bytes);
         double gb_drive = convert_to_gigabytes(total_number_of_free_bytes);
@@ -261,17 +273,19 @@ void make_copy()
         bool end = false;
         bool flag = false;
 
-        if (first_time) {
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+        if (first_time)
+        {
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             first_time = false;
         }
-                
+
         while (!end)
         {
             std::vector<std::string> current_files;
             current_size = current_size + generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
             generate_directories_structure(num, directories);
             copy_files(current_files, files_sizes_aux, num, gb_size, index);
+
             if (current_size >= size)
             {
                 end = true;
