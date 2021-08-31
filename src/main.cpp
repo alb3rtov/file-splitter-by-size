@@ -134,7 +134,7 @@ void list_drives()
 /* Main function */
 int main()
 {
-    std::vector<std::string> option_vector = {"1. List USB drives",
+    std::vector<std::string> option_vector = {"1. List all drives",
                                               "2. Make a copy",
                                               "3. Quit"};
     std::vector<void (*)()> function_vector;

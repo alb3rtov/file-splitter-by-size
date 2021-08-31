@@ -87,7 +87,6 @@ long long int list_all_files(std::string directory_path, std::vector<std::string
         {
             files.push_back(path);
             files_sizes.push_back(std::filesystem::file_size(path));
-            //std::cout << path << "  " << std::filesystem::file_size(path) << std::endl;
             total_size = total_size + std::filesystem::file_size(path);
         }
     }
@@ -171,40 +170,55 @@ std::string generate_path_file_backup(std::string current_path, int num)
     return new_path;
 }
 
+/* Convert long long int bytes to double gigabytes */
+double convert_to_gb_from_long_int(long long int size) {
+    double kb_size = size / 1024;
+    double mb_size = kb_size / 1024;
+    double gb_size = mb_size / 1024;
+
+    return gb_size;
+}
+
+/* Add space characters to avoid output overwrite */
+std::string add_space_characters() {
+    
+    std::string str;
+    
+    for (int i = 0; i < MAX_PATH; i++) { /* By default, Windows uses a path length limitation (MAX_PATH) of 256 characters */
+        str.append(" ");
+    }
+
+    return str;
+}
+
 /* Generate a percentage of the current copy process */
-void generate_dynamic_percentage(double gb_size, long long int current_filesize, double &percentage, std::string new_path_file, bool &first_time)
+void generate_dynamic_percentage(long long gb_size, long long int current_filesize, double &percentage, std::string new_path_file, bool &first_output, int num_files, int index)
 {
-    double kb_current_file_size = current_filesize / 1024;
-    double mb_current_file_size = kb_current_file_size / 1024;
-    double gb_current_file_size = mb_current_file_size / 1024;
+    percentage = percentage + (convert_to_gb_from_long_int(current_filesize) * 100) / (convert_to_gb_from_long_int(gb_size));
 
-    percentage = percentage + (gb_current_file_size * 100) / gb_size;
-
-    if (first_time)
+    if (first_output)
     {
-        first_time = false;
+        first_output = false;
         std::cout << "Progress: " << std::fixed << std::setprecision(2) << percentage << " %" << std::endl;
-        std::cout << "Copying file " << new_path_file << std::endl;
+        std::cout << "Copying file " << new_path_file << "... (" << index << "/" << num_files << ")" << std::endl;
     }
     else
     {   
-        std::cout << "\033[FCopying file " << new_path_file;
+        std::cout << "\033[FCopying file " << new_path_file << "... (" << index << "/" << num_files << ")" << add_space_characters();
         std::cout << "\033[FProgress: " << std::fixed << std::setprecision(2) << percentage << " %\n\n";
     }
 }
 
 /* Perform the copy of current files on the vector */
-void copy_files(std::vector<std::string> current_files, std::vector<long long int> files_sizes_aux, int num, double gb_size, int &index)
+void copy_files(std::vector<std::string> current_files, std::vector<long long int> files_sizes_aux, int num, long long int gb_size, int &index)
 {
     double percentage = 0;
-    bool first_time = true;
+    bool first_output = true;
 
     for (int i = 0; i < current_files.size(); i++)
     {
         std::string new_path_file = generate_path_file_backup(current_files.at(i), num);
-
-        //GENERATE PROGRESS BAR AND SHOW WHAT FILES HAVE BEEN COPIED
-        generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage, new_path_file, first_time);
+        generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage, new_path_file, first_output, current_files.size(), i);
 
         if (!CopyFileA(current_files.at(i).c_str(), new_path_file.c_str(), 0))
         {
@@ -217,19 +231,15 @@ void copy_files(std::vector<std::string> current_files, std::vector<long long in
 
 void pause(double gb_size, long long current_size, bool flag)
 {
-    double cc_kb_size = current_size / 1024;
-    double cc_mb_size = cc_kb_size / 1024;
-    double cc_gb_size = cc_mb_size / 1024;
-
     std::cout << "The copy process is finished." << std::endl;
-    std::cout << cc_gb_size << " of " << gb_size << " GB has been copied" << std::endl;
+    std::cout << convert_to_gb_from_long_int(current_size) << " of " << gb_size << " GB has been copied" << std::endl;
     std::cout << "Now, you can extract the drive " + drive_letter << std::endl;
 
     /* Check if USB drive has enough space (new function) */
     if (flag)
     {
         std::cout << "All copies have been completed successfully" << std::endl;
-        std::cout << "Press enter to exit";
+        std::cout << "\nPress enter to exit";
     }
     else
     {
@@ -245,6 +255,7 @@ void make_copy()
 {
     long long int size = 0;
     ULARGE_INTEGER total_number_of_free_bytes = {0};
+
     std::vector<std::string> files;
     std::vector<std::string> directories;
     std::vector<long long int> files_sizes;
@@ -259,10 +270,8 @@ void make_copy()
             files_sizes_aux.push_back(files_sizes.at(i));
         }
 
-        double kb_size = size / 1024;
-        double mb_size = kb_size / 1024;
-        double gb_size = mb_size / 1024;
-        std::cout << "\nTotal size: " << std::fixed << std::setprecision(2) << gb_size << " GB\n" << std::endl;
+        double gb_size = convert_to_gb_from_long_int(size);
+        std::cout << "\nTotal size of copy: " << std::fixed << std::setprecision(2) << gb_size << " GB\n" << std::endl;
 
         GetDiskFreeSpaceExA(drive_letter.c_str(), NULL, NULL, &total_number_of_free_bytes);
         double gb_drive = convert_to_gigabytes(total_number_of_free_bytes);
@@ -279,12 +288,15 @@ void make_copy()
             first_time = false;
         }
 
+        std::cout << "Press enter to start the copy process..." << std::endl;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
         while (!end)
         {
             std::vector<std::string> current_files;
             current_size = current_size + generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
             generate_directories_structure(num, directories);
-            copy_files(current_files, files_sizes_aux, num, gb_size, index);
+            copy_files(current_files, files_sizes_aux, num, current_size, index);
 
             if (current_size >= size)
             {
