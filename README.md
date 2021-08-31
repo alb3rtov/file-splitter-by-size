@@ -1,8 +1,8 @@
 # File splitter by size
-This script will divide in folders a selected set data by a given size. Very useful for perform backups in a limited USB flash drives.
+This script will divide in folders a selected set data by a given size. Very useful for perform backups in a limited drives.
 
 ## How to use
-The main use of this program is for perfom backups to others machines using USB flash drives that doesn't have enough space to storage all the data, so you will have manually select the files and directories that suit into the USB drive and repeat this until all data is copied. This program split the files and directories in diferent folders in a logical way, that is the folders structure will not change, the program just read all the files and selected until the maximum size indicated by the user. Also it can perform the copies.
+The main use of this program is for perfom backups to others machines using drives that doesn't have enough space to storage all the data, so you will have manually select the files and directories that suit into the drive and repeat this until all data is copied. This program split the files and directories in diferent folders in a logical way, that is the folders structure will not change, the program just read all the files and selected until the maximum size indicated by the user. Also it can perform the copies.
 
 ### Win32 API
 This program only works for Windows OS because it's use the [Win32 API](https://docs.microsoft.com/en-us/windows/win32/api/) for some funcionalities. Maybe in the future I will code it for Linux systems.
