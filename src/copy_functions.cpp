@@ -180,6 +180,13 @@ double convert_to_gb_from_long_int(long long int size) {
     return gb_size;
 }
 
+double convert_to_mb_from_long_int(long long int size) {
+    double kb_size = size / 1024;
+    double mb_size = kb_size / 1024;
+    
+    return mb_size; 
+}
+
 /* Add space characters to avoid output overwrite */
 std::string add_space_characters() {
     
@@ -205,10 +212,7 @@ void generate_dynamic_percentage(long long gb_size, long long int current_filesi
     }
     else
     {   
-        //system("echo \e[1A\e[K");
         std::cout << "\033[FCopying file " << new_path_file << "... (" << index << "/" << num_files << ")" << add_space_characters();
-        //system("echo \e[2A\e[K");
-        //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         std::cout << "\033[FProgress: " << std::fixed << std::setprecision(2) << percentage << " %\n\n";
     }
 }
@@ -251,13 +255,15 @@ void pause(double gb_size, long long current_size, bool flag, std::chrono::durat
     if (flag)
     {
         std::cout << "All copies have been completed successfully" << std::endl;
-        std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
+        std::cout << "Elapsed time: " << elapsed.count() << " seconds. Write speed: " 
+                  << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size)/elapsed.count() << " MB/s" << std::endl;
         std::cout << "\nPress enter to exit";
     }
     else
     {
         std::cout << "Before continue copying the next files, make sure you have delete the previous copy" << std::endl;
-        std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
+        std::cout << "Elapsed time: " << elapsed.count() << " seconds. Write speed: " 
+                  << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size)/elapsed.count() << " MB/s" << std::endl;
         std::cout << "\nPress enter to continue";
     }
 
