@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <math.h>
 #include <limits>
+#include <chrono>
 
 #include "..\include\definitions.hpp"
 
@@ -183,8 +184,8 @@ double convert_to_gb_from_long_int(long long int size) {
 std::string add_space_characters() {
     
     std::string str;
-    
-    for (int i = 0; i < MAX_PATH; i++) { /* By default, Windows uses a path length limitation (MAX_PATH) of 256 characters */
+
+    for (int i = 0; i < 100; i++) { /* Add 100 blank spaces to clean the previous output */
         str.append(" ");
     }
 
@@ -204,21 +205,26 @@ void generate_dynamic_percentage(long long gb_size, long long int current_filesi
     }
     else
     {   
+        //system("echo \e[1A\e[K");
         std::cout << "\033[FCopying file " << new_path_file << "... (" << index << "/" << num_files << ")" << add_space_characters();
+        //system("echo \e[2A\e[K");
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         std::cout << "\033[FProgress: " << std::fixed << std::setprecision(2) << percentage << " %\n\n";
     }
 }
 
 /* Perform the copy of current files on the vector */
-void copy_files(std::vector<std::string> current_files, std::vector<long long int> files_sizes_aux, int num, long long int gb_size, int &index)
+std::chrono::duration<double> copy_files(std::vector<std::string> current_files, std::vector<long long int> files_sizes_aux, int num, long long int gb_size, int &index)
 {
     double percentage = 0;
     bool first_output = true;
+    
+    auto start = std::chrono::system_clock::now();
 
     for (int i = 0; i < current_files.size(); i++)
     {
         std::string new_path_file = generate_path_file_backup(current_files.at(i), num);
-        generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage, new_path_file, first_output, current_files.size(), i);
+        generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage, new_path_file, first_output, current_files.size()-1, i);
 
         if (!CopyFileA(current_files.at(i).c_str(), new_path_file.c_str(), 0))
         {
@@ -227,9 +233,15 @@ void copy_files(std::vector<std::string> current_files, std::vector<long long in
         index++;
     }
     std::cout << "\n";
+
+    auto end = std::chrono::system_clock::now();
+    //std::chrono::duration<double> elapsed = end-start;
+
+    return end-start;
+
 }
 
-void pause(double gb_size, long long current_size, bool flag)
+void pause(double gb_size, long long current_size, bool flag, std::chrono::duration<double> elapsed)
 {
     std::cout << "The copy process is finished." << std::endl;
     std::cout << convert_to_gb_from_long_int(current_size) << " of " << gb_size << " GB has been copied" << std::endl;
@@ -239,11 +251,13 @@ void pause(double gb_size, long long current_size, bool flag)
     if (flag)
     {
         std::cout << "All copies have been completed successfully" << std::endl;
+        std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
         std::cout << "\nPress enter to exit";
     }
     else
     {
         std::cout << "Before continue copying the next files, make sure you have delete the previous copy" << std::endl;
+        std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
         std::cout << "\nPress enter to continue";
     }
 
@@ -296,7 +310,7 @@ void make_copy()
             std::vector<std::string> current_files;
             current_size = current_size + generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
             generate_directories_structure(num, directories);
-            copy_files(current_files, files_sizes_aux, num, current_size, index);
+            std::chrono::duration<double> elapsed = copy_files(current_files, files_sizes_aux, num, current_size, index);
 
             if (current_size >= size)
             {
@@ -304,7 +318,7 @@ void make_copy()
                 flag = true;
             }
 
-            pause(gb_size, current_size, flag);
+            pause(gb_size, current_size, flag, elapsed);
         }
     }
     else
