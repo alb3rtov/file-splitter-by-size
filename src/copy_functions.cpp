@@ -172,7 +172,8 @@ std::string generate_path_file_backup(std::string current_path, int num)
 }
 
 /* Convert long long int bytes to double gigabytes */
-double convert_to_gb_from_long_int(long long int size) {
+double convert_to_gb_from_long_int(long long int size)
+{
     double kb_size = size / 1024;
     double mb_size = kb_size / 1024;
     double gb_size = mb_size / 1024;
@@ -180,27 +181,37 @@ double convert_to_gb_from_long_int(long long int size) {
     return gb_size;
 }
 
-double convert_to_mb_from_long_int(long long int size) {
+double convert_to_mb_from_long_int(long long int size)
+{
     double kb_size = size / 1024;
     double mb_size = kb_size / 1024;
-    
-    return mb_size; 
+
+    return mb_size;
 }
 
 /* Add space characters to avoid output overwrite */
-std::string add_space_characters() {
-    
-    std::string str;
+std::string add_space_characters(int index, std::vector<std::string> current_files, int current_file_length)
+{
 
-    for (int i = 0; i < 100; i++) { /* Add 100 blank spaces to clean the previous output */
-        str.append(" ");
+    int previous_file_length = current_files.at(index - 1).length();
+    int diff = previous_file_length - current_file_length;
+
+    std::string str = "";
+ 
+    if (diff > 0) /* Only add spaces characters if previous file path is larger than the current file path */
+    {
+        for (int i = 0; i < diff - 1; i++) /* Add the diff number spaces characters */
+        {
+            str.append(" ");
+        }
     }
 
     return str;
 }
 
 /* Generate a percentage of the current copy process */
-void generate_dynamic_percentage(long long gb_size, long long int current_filesize, double &percentage, std::string new_path_file, bool &first_output, int num_files, int index)
+void generate_dynamic_percentage(long long gb_size, long long int current_filesize, double &percentage,
+                                 std::string new_path_file, bool &first_output, std::vector<std::string> current_files, int index)
 {
     percentage = percentage + (convert_to_gb_from_long_int(current_filesize) * 100) / (convert_to_gb_from_long_int(gb_size));
 
@@ -208,11 +219,11 @@ void generate_dynamic_percentage(long long gb_size, long long int current_filesi
     {
         first_output = false;
         std::cout << "Progress: " << std::fixed << std::setprecision(2) << percentage << " %" << std::endl;
-        std::cout << "Copying file " << new_path_file << "... (" << index << "/" << num_files << ")" << std::endl;
+        std::cout << "Copying file " << new_path_file << "... (" << index << "/" << current_files.size() - 1 << ")" << std::endl;
     }
     else
-    {   
-        std::cout << "\033[FCopying file " << new_path_file << "... (" << index << "/" << num_files << ")" << add_space_characters();
+    {
+        std::cout << "\033[FCopying file " << new_path_file << "... (" << index << "/" << current_files.size() - 1 << ")" << add_space_characters(index, current_files, new_path_file.length());
         std::cout << "\033[FProgress: " << std::fixed << std::setprecision(2) << percentage << " %\n\n";
     }
 }
@@ -222,13 +233,13 @@ std::chrono::duration<double> copy_files(std::vector<std::string> current_files,
 {
     double percentage = 0;
     bool first_output = true;
-    
+
     auto start = std::chrono::system_clock::now();
 
     for (int i = 0; i < current_files.size(); i++)
     {
         std::string new_path_file = generate_path_file_backup(current_files.at(i), num);
-        generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage, new_path_file, first_output, current_files.size()-1, i);
+        generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage, new_path_file, first_output, current_files, i);
 
         if (!CopyFileA(current_files.at(i).c_str(), new_path_file.c_str(), 0))
         {
@@ -241,8 +252,7 @@ std::chrono::duration<double> copy_files(std::vector<std::string> current_files,
     auto end = std::chrono::system_clock::now();
     //std::chrono::duration<double> elapsed = end-start;
 
-    return end-start;
-
+    return end - start;
 }
 
 void pause(double gb_size, long long current_size, bool flag, std::chrono::duration<double> elapsed)
@@ -255,15 +265,15 @@ void pause(double gb_size, long long current_size, bool flag, std::chrono::durat
     if (flag)
     {
         std::cout << "All copies have been completed successfully" << std::endl;
-        std::cout << "Elapsed time: " << elapsed.count() << " seconds. Write speed: " 
-                  << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size)/elapsed.count() << " MB/s" << std::endl;
+        std::cout << "Elapsed time: " << elapsed.count() << " seconds. Write speed: "
+                  << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size) / elapsed.count() << " MB/s" << std::endl;
         std::cout << "\nPress enter to exit";
     }
     else
     {
         std::cout << "Before continue copying the next files, make sure you have delete the previous copy" << std::endl;
-        std::cout << "Elapsed time: " << elapsed.count() << " seconds. Write speed: " 
-                  << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size)/elapsed.count() << " MB/s" << std::endl;
+        std::cout << "Elapsed time: " << elapsed.count() << " seconds. Write speed: "
+                  << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size) / elapsed.count() << " MB/s" << std::endl;
         std::cout << "\nPress enter to continue";
     }
 
@@ -291,7 +301,8 @@ void make_copy()
         }
 
         double gb_size = convert_to_gb_from_long_int(size);
-        std::cout << "\nTotal size of copy: " << std::fixed << std::setprecision(2) << gb_size << " GB\n" << std::endl;
+        std::cout << "\nTotal size of copy: " << std::fixed << std::setprecision(2) << gb_size << " GB\n"
+                  << std::endl;
 
         GetDiskFreeSpaceExA(drive_letter.c_str(), NULL, NULL, &total_number_of_free_bytes);
         double gb_drive = convert_to_gigabytes(total_number_of_free_bytes);
