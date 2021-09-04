@@ -197,10 +197,10 @@ std::string add_space_characters(int index, std::vector<std::string> current_fil
     int diff = previous_file_length - current_file_length;
 
     std::string str = "";
- 
+
     if (diff > 0) /* Only add spaces characters if previous file path is larger than the current file path */
     {
-        for (int i = 0; i < diff - 1; i++) /* Add the diff number spaces characters */
+        for (int i = 0; i < diff; i++) /* Add the diff number spaces characters */
         {
             str.append(" ");
         }
@@ -250,30 +250,46 @@ std::chrono::duration<double> copy_files(std::vector<std::string> current_files,
     std::cout << "\n";
 
     auto end = std::chrono::system_clock::now();
-    //std::chrono::duration<double> elapsed = end-start;
 
     return end - start;
 }
 
+/* Convert elapsed time to minutes if is necessary */
+void get_elapsed_time(double elapsed_time)
+{
+
+    if (elapsed_time > 60)
+    {
+        int minutes = elapsed_time / 60;
+        double d_minutes = elapsed_time / 60;
+        int seconds = (d_minutes - minutes) * 60;
+        std::cout << "Elapsed time: " << minutes << " minutes " << seconds << " seconds. ";
+    }
+    else
+    {
+        std::cout << "Elapsed time: " << elapsed_time << " seconds. ";
+    }
+}
+
+/* Print information about copy process */
 void pause(double gb_size, long long current_size, bool flag, std::chrono::duration<double> elapsed)
 {
     std::cout << "The copy process is finished." << std::endl;
     std::cout << convert_to_gb_from_long_int(current_size) << " of " << gb_size << " GB has been copied" << std::endl;
     std::cout << "Now, you can extract the drive " + drive_letter << std::endl;
 
-    /* Check if USB drive has enough space (new function) */
     if (flag)
     {
         std::cout << "All copies have been completed successfully" << std::endl;
-        std::cout << "Elapsed time: " << elapsed.count() << " seconds. Write speed: "
-                  << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size) / elapsed.count() << " MB/s" << std::endl;
+        get_elapsed_time(elapsed.count());
+        std::cout << "Write speed: " << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size) / elapsed.count() << " MB/s" << std::endl;
         std::cout << "\nPress enter to exit";
     }
     else
     {
         std::cout << "Before continue copying the next files, make sure you have delete the previous copy" << std::endl;
-        std::cout << "Elapsed time: " << elapsed.count() << " seconds. Write speed: "
-                  << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size) / elapsed.count() << " MB/s" << std::endl;
+        get_elapsed_time(elapsed.count());
+        std::cout << "Write speed: " << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size) / elapsed.count() << " MB/s" << std::endl;
         std::cout << "\nPress enter to continue";
     }
 
@@ -309,7 +325,7 @@ void make_copy()
         int num = get_num_real_directory(directory_path);
 
         int index = 0;
-        long long int current_size = 0;
+        long long int total_size = 0;
         bool end = false;
         bool flag = false;
 
@@ -325,17 +341,28 @@ void make_copy()
         while (!end)
         {
             std::vector<std::string> current_files;
-            current_size = current_size + generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
-            generate_directories_structure(num, directories);
-            std::chrono::duration<double> elapsed = copy_files(current_files, files_sizes_aux, num, current_size, index);
+            long long int current_size = generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
 
-            if (current_size >= size)
+            if (current_size <= total_number_of_free_bytes.QuadPart) /* Check if there is enough space in the drive */ 
             {
-                end = true;
-                flag = true;
-            }
+                total_size = total_size + current_size;
+                generate_directories_structure(num, directories);
+                std::chrono::duration<double> elapsed = copy_files(current_files, files_sizes_aux, num, total_size, index);
 
-            pause(gb_size, current_size, flag, elapsed);
+                if (total_size >= size)
+                {
+                    end = true;
+                    flag = true;
+                }
+
+                pause(gb_size, total_size, flag, elapsed);
+            } 
+            else 
+            {
+                std::cout << "There is not enough space (" << gb_drive << " GB free) for make the copy (" 
+                            << convert_to_gb_from_long_int(current_size) << " GB)";
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');       
+            }
         }
     }
     else
