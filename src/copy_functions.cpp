@@ -23,8 +23,9 @@ void check_current_attrs_values()
               << std::endl;
 
     if (!drive_letter.empty())
-    {
-        std::cout << BHIYELLOW << "\nCurrent selected drive letter: " << drive_letter;
+    {   
+        std::string fix_drive_letter = drive_letter.substr(0, drive_letter.size()-2);
+        std::cout << BHIYELLOW << "\nCurrent selected drive letter: " << fix_drive_letter;
     }
 
     if (!directory_path.empty())
@@ -61,7 +62,7 @@ void select_directory()
     do
     {
         std::cout << "\nSelect directory (i.e.: D:\\Data ): ";
-        std::cin >> directory_path;
+        std::getline(std::cin, directory_path);
     } while (!is_path_exist(directory_path));
 
     clear_display_banner_and_menu();
@@ -100,23 +101,26 @@ long long int generate_current_vector_files(std::vector<std::string> &current_fi
                                             std::vector<long long int> &files_sizes, long long int total_number_of_free_bytes)
 {
     long long int total_files_sizes = 0;
+    int i = 0;
 
     while (!files.empty())
     {
-
-        std::string current_file = files.at(0);
-        long long current_size = files_sizes.at(0);
+        std::string current_file = files.at(i);
+        long long current_size = files_sizes.at(i);
         total_files_sizes = total_files_sizes + current_size;
 
         if (total_files_sizes >= total_number_of_free_bytes)
         {
             total_files_sizes = total_files_sizes - current_size;
-            break;
+            i++;
+            if (i > files.size()-1) {
+                break;
+            }
         }
         else
         {
-            files.erase(files.begin());
-            files_sizes.erase(files_sizes.begin());
+            files.erase(files.begin() + i);
+            files_sizes.erase(files_sizes.begin() + i);
             current_files.push_back(current_file);
         }
     }

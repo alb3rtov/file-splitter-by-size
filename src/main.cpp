@@ -114,6 +114,11 @@ void list_drives()
             if (u_drive_mask & 1)  /* Use the bitwise AND, 1–available, 0-not available */
             {
                 std::cout << sz_drive << "\t\t";
+                std::string drive_letter_str;
+                std::stringstream ss;
+                ss << sz_drive;
+                ss >> drive_letter_str;
+                drive_list.push_back(drive_letter_str);
 
                 GetVolumeInformation(tch_ptr, tch_volume_name_buff, MAX_PATH + 1, NULL, NULL, NULL, NULL, 0);
                 std::cout << tch_volume_name_buff << "\t\t";
