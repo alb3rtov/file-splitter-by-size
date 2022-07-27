@@ -12,46 +12,7 @@
 #include "..\include\colors.hpp"
 #include "..\include\definitions.hpp"
 
-/* Generate menu based on a Menu object */
-void create_generic_menu(Menu menu, bool move_output) 
-{
-    int counter = 1;
-    bool running = true;
-    bool first_iteration = true;
-
-    while (running)
-    {  
-        if (first_iteration) 
-        {
-            first_iteration = false;
-            check_current_attrs_values();
-        }
-        menu.display_options();
-        menu.check_last_input_character(counter, running, move_output);
-        menu.change_color_options(counter);
-    }
-
-    std::cout << WHITE << std::endl;
-    system("clear");
-}
-
-/* Generate make copy menu */
-void make_copy_menu() {
-    std::vector<std::string> option_vector = {"1. Select drive letter to backup",
-                                            "2. Select directory to copy",
-                                            "3. Make copy",
-                                            "4. Back"};
-    std::vector<void (*)()> function_vector;
-
-    function_vector.push_back(select_drive_letter);
-    function_vector.push_back(select_directory);
-    function_vector.push_back(make_copy);
-
-    Menu second_menu(option_vector, function_vector);
-    display_banner(false);
-    create_generic_menu(second_menu, false);
-    display_banner(false);
-}
+bool first_menu = true;
 
 /* Get type of drive */
 void DisplayDriveType(int iParam)
@@ -134,6 +95,51 @@ void list_drives()
             u_drive_mask >>= 1; /* shift the bitmask binary right */
         }
     }
+}
+
+/* Generate menu based on a Menu object */
+void create_generic_menu(Menu menu, bool move_output) 
+{
+    int counter = 1;
+    bool running = true;
+    bool first_iteration = true;
+
+    while (running)
+    {  
+        if (first_iteration) 
+        {
+            first_iteration = false;
+            check_current_attrs_values();
+            if (first_menu) { /* Print drives first time */
+                first_menu = false;
+                list_drives();
+            }
+        }
+        menu.display_options();
+        menu.check_last_input_character(counter, running, move_output);
+        menu.change_color_options(counter);
+    }
+
+    std::cout << WHITE << std::endl;
+    system("clear");
+}
+
+/* Generate make copy menu */
+void make_copy_menu() {
+    std::vector<std::string> option_vector = {"1. Select drive letter to backup",
+                                            "2. Select directory to copy",
+                                            "3. Make copy",
+                                            "4. Back"};
+    std::vector<void (*)()> function_vector;
+
+    function_vector.push_back(select_drive_letter);
+    function_vector.push_back(select_directory);
+    function_vector.push_back(make_copy);
+
+    Menu second_menu(option_vector, function_vector);
+    display_banner(false);
+    create_generic_menu(second_menu, false);
+    display_banner(false);
 }
 
 /* Main function */

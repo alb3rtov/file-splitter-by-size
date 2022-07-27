@@ -41,14 +41,28 @@ bool is_path_exist(const std::string &s)
     return (stat(s.c_str(), &buffer) == 0);
 }
 
+bool drive_letter_found(std::string d_letter) {
+    bool found = false;
+
+    for (int i = 0; i < drive_list.size(); i++) {
+        if ((drive_list[i].substr(0, drive_list[i].size()-1)) == d_letter) {
+            found = true;
+            break;
+        }
+    }
+
+    return found;
+}
+
 /* Request drive letter to user */
 void select_drive_letter()
 {
     do
     {
         std::cout << "\nSelect drive letter (e.g.: E): ";
-        std::cin >> drive_letter;
-    } while (!std::regex_match(drive_letter, std::regex("[A-Za-z]")) && (drive_letter.size() != 1));
+        std::getline(std::cin, drive_letter);
+    //} while (!std::regex_match(drive_letter, std::regex("[A-Za-z]")) && (drive_letter.size() != 1));
+    } while (!drive_letter_found(drive_letter));
     drive_letter.append(":\\");
     drive_letter.append("\\");
 
