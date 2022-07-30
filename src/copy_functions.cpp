@@ -15,7 +15,6 @@
 std::string drive_letter;
 std::string copy_full_path;
 std::string directory_path;
-bool first_time = true;
 
 /* Check all attributes values to print if contain smth */
 void check_current_attrs_values()
@@ -46,6 +45,7 @@ bool is_path_exist(const std::string &s)
     return (stat(s.c_str(), &buffer) == 0);
 }
 
+/* Check if input drive letter exists in the system */
 bool drive_letter_found(std::string d_letter) 
 {
     bool found = false;
@@ -74,22 +74,30 @@ void select_backup_options()
         if (!drive_letter_found(drive_letter)) {
             exit = false;
         } else {
-            if (!is_path_exist(copy_full_path)) {
-                std::string response;
-                std::cout << "\nThe directory " + copy_full_path + " does not exists, do you want create the directory? [Y/n]: ";
-                std::getline(std::cin, response);
-                if (response == "Y" || response == "y") {
-                    if (!CreateDirectoryA(copy_full_path.c_str(), 0))
-                    {
-                        if (GetLastError() != ERROR_ALREADY_EXISTS)
+            if (copy_full_path.size() == 1) { 
+                copy_full_path.append(":");
+                std::cout << "\nThe copy will be made to the root directory of " + copy_full_path + " drive";
+                std::cout << "\nPress enter to continue";
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                exit = true;
+            } else {
+                if (!is_path_exist(copy_full_path)) {
+                    std::string response_pe;
+                    std::cout << "\nThe directory " + copy_full_path + " does not exists, do you want create the directory? [Y/n]: ";
+                    std::getline(std::cin, response_pe);
+                    if (response_pe == "Y" || response_pe == "y") {
+                        if (!CreateDirectoryA(copy_full_path.c_str(), 0))
                         {
-                            std::cout << "Error: " << GetLastError() << std::endl;
+                            if (GetLastError() != ERROR_ALREADY_EXISTS)
+                            {
+                                std::cout << "Error: " << GetLastError() << std::endl;
+                            }
                         }
+                        exit = true;
                     }
+                } else {
                     exit = true;
                 }
-            } else {
-                exit = true;
             }
         }
     } while (!exit);
@@ -147,7 +155,7 @@ long long int generate_current_vector_files(std::vector<std::string> &current_fi
 {
     long long int total_files_sizes = 0;
     int i = 0;
-
+    
     while (!files.empty())
     {
         std::string current_file = files.at(i);
@@ -233,6 +241,7 @@ double convert_to_gb_from_long_int(long long int size)
     return gb_size;
 }
 
+/* Convert mb to long int */
 double convert_to_mb_from_long_int(long long int size)
 {
     double kb_size = size / 1024;
@@ -383,20 +392,15 @@ void make_copy()
         bool end = false;
         bool flag = false;
 
-        if (first_time)
-        {
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            first_time = false;
-        }
-
         std::cout << "Press enter to start the copy process..." << std::endl;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
         while (!end)
         {
             std::vector<std::string> current_files;
+            
             long long int current_size = generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
-
+            
             if (current_size <= total_number_of_free_bytes.QuadPart) /* Check if there is enough space in the drive */ 
             {
                 total_size = total_size + current_size;
