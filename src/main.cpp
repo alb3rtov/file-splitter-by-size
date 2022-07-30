@@ -21,26 +21,32 @@ void DisplayDriveType(int iParam)
     {
     case DRIVE_UNKNOWN:
         std::cout << "Drive type unknown" << std::endl;
+        drive_type = DRIVE_UNKNOWN;
         break;
 
     case DRIVE_NO_ROOT_DIR:
         std::cout << "No drive for that root path" << std::endl;
+        drive_type = DRIVE_NO_ROOT_DIR;
         break;
 
     case DRIVE_REMOVABLE:
         std::cout << "Removable drive" << std::endl;
+        drive_type = DRIVE_REMOVABLE;
         break;
 
     case DRIVE_FIXED:
         std::cout << "Fixed drive" << std::endl;
+        drive_type = DRIVE_FIXED;
         break;
 
     case DRIVE_REMOTE:
         std::cout << "Network drive" << std::endl;
+        drive_type = DRIVE_REMOTE;
         break;
 
     case DRIVE_CDROM:
         std::cout << "CD ROM drive" << std::endl;
+        drive_type = DRIVE_CDROM;
         break;
     }
 }
@@ -126,13 +132,13 @@ void create_generic_menu(Menu menu, bool move_output)
 
 /* Generate make copy menu */
 void make_copy_menu() {
-    std::vector<std::string> option_vector = {"1. Select drive letter to backup",
+    std::vector<std::string> option_vector = {"1. Select backup options",
                                             "2. Select directory to copy",
                                             "3. Make copy",
                                             "4. Back"};
     std::vector<void (*)()> function_vector;
 
-    function_vector.push_back(select_drive_letter);
+    function_vector.push_back(select_backup_options);
     function_vector.push_back(select_directory);
     function_vector.push_back(make_copy);
 

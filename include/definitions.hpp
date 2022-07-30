@@ -14,6 +14,7 @@
 #define KEY_ENTER '\r'      /* Enter key character */
 
 std::vector<std::string> drive_list;
+int drive_type;
 
 /* Returns a double of conversion of bytes to GB */
 double convert_to_gigabytes(ULARGE_INTEGER total_bytes) {

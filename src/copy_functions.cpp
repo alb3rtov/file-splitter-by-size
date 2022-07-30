@@ -13,6 +13,7 @@
 #include "..\include\definitions.hpp"
 
 std::string drive_letter;
+std::string copy_full_path;
 std::string directory_path;
 bool first_time = true;
 
@@ -23,14 +24,18 @@ void check_current_attrs_values()
               << std::endl;
 
     if (!drive_letter.empty())
-    {   
+    {  
         std::string fix_drive_letter = drive_letter.substr(0, drive_letter.size()-2);
         std::cout << BHIYELLOW << "\nCurrent selected drive letter: " << fix_drive_letter;
     }
 
+    if (!copy_full_path.empty()) {
+        std::cout << BHIYELLOW << "\nCurrent selected directory where make the copy: " << copy_full_path;
+    }
+
     if (!directory_path.empty())
     {
-        std::cout << BHIYELLOW << "\nCurrent selected directory path: " << directory_path;
+        std::cout << BHIYELLOW << "\nCurrent selected directory path to copy: " << directory_path;
     }
 }
 
@@ -41,7 +46,8 @@ bool is_path_exist(const std::string &s)
     return (stat(s.c_str(), &buffer) == 0);
 }
 
-bool drive_letter_found(std::string d_letter) {
+bool drive_letter_found(std::string d_letter) 
+{
     bool found = false;
 
     for (int i = 0; i < drive_list.size(); i++) {
@@ -55,14 +61,39 @@ bool drive_letter_found(std::string d_letter) {
 }
 
 /* Request drive letter to user */
-void select_drive_letter()
+void select_backup_options()
 {
-    do
+
+    bool exit = false;
+    do 
     {
-        std::cout << "\nSelect drive letter (e.g.: E): ";
-        std::getline(std::cin, drive_letter);
-    //} while (!std::regex_match(drive_letter, std::regex("[A-Za-z]")) && (drive_letter.size() != 1));
-    } while (!drive_letter_found(drive_letter));
+        std::cout << "\nSelect directory where save the copy (e.g.: D:\\Data): ";
+        std::getline(std::cin, copy_full_path);
+        drive_letter = copy_full_path.front();
+    
+        if (!drive_letter_found(drive_letter)) {
+            exit = false;
+        } else {
+            if (!is_path_exist(copy_full_path)) {
+                std::string response;
+                std::cout << "\nThe directory " + copy_full_path + " does not exists, do you want create the directory? [Y/n]: ";
+                std::getline(std::cin, response);
+                if (response == "Y" || response == "y") {
+                    if (!CreateDirectoryA(copy_full_path.c_str(), 0))
+                    {
+                        if (GetLastError() != ERROR_ALREADY_EXISTS)
+                        {
+                            std::cout << "Error: " << GetLastError() << std::endl;
+                        }
+                    }
+                    exit = true;
+                }
+            } else {
+                exit = true;
+            }
+        }
+    } while (!exit);
+
     drive_letter.append(":\\");
     drive_letter.append("\\");
 
@@ -93,7 +124,7 @@ long long int list_all_files(std::string directory_path, std::vector<std::string
     for (const auto &entry : std::filesystem::directory_iterator(directory_path))
     {
         path = entry.path().string();
-
+       
         if (std::filesystem::is_directory(path))
         {
             directories.push_back(path);
@@ -159,8 +190,9 @@ int get_num_real_directory(std::string directory_path)
 /* Generate the directory structure on USB drive selected */
 void generate_directories_structure(int num, std::vector<std::string> directories)
 {
-    std::string main_path = drive_letter.substr(0, 2).append(directory_path.substr(num, directory_path.size() - 1));
-
+    std::string destination_folder = copy_full_path;
+    std::string main_path = destination_folder.append(directory_path.substr(num, directory_path.size() - 1));
+   
     if (!CreateDirectoryA(main_path.c_str(), 0))
     {
         if (GetLastError() != ERROR_ALREADY_EXISTS)
@@ -171,7 +203,8 @@ void generate_directories_structure(int num, std::vector<std::string> directorie
 
     for (int i = 0; i < directories.size(); i++)
     {
-        std::string new_path = drive_letter.substr(0, 2).append(directories.at(i).substr(num, directories.at(i).size() - 1));
+        std::string destination_folder_inside = copy_full_path;
+        std::string new_path = destination_folder_inside.append(directories.at(i).substr(num, directories.at(i).size() - 1));
         if (!CreateDirectoryA(new_path.c_str(), 0))
         {
             if (GetLastError() != ERROR_ALREADY_EXISTS)
@@ -184,8 +217,9 @@ void generate_directories_structure(int num, std::vector<std::string> directorie
 
 /* Generate the new path for files on USB drive */
 std::string generate_path_file_backup(std::string current_path, int num)
-{
-    std::string new_path = drive_letter.substr(0, 2).append(current_path.substr(num, current_path.size() - 1));
+{   
+    std::string destination_folder = copy_full_path;
+    std::string new_path = destination_folder.append(current_path.substr(num, current_path.size() - 1));
     return new_path;
 }
 
@@ -210,7 +244,6 @@ double convert_to_mb_from_long_int(long long int size)
 /* Add space characters to avoid output overwrite */
 std::string add_space_characters(int index, std::vector<std::string> current_files, int current_file_length)
 {
-
     int previous_file_length = current_files.at(index - 1).length();
     int diff = previous_file_length - current_file_length;
 
@@ -257,6 +290,7 @@ std::chrono::duration<double> copy_files(std::vector<std::string> current_files,
     for (int i = 0; i < current_files.size(); i++)
     {
         std::string new_path_file = generate_path_file_backup(current_files.at(i), num);
+
         generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage, new_path_file, first_output, current_files, i);
 
         if (!CopyFileA(current_files.at(i).c_str(), new_path_file.c_str(), 0))
@@ -294,7 +328,9 @@ void pause(double gb_size, long long current_size, bool flag, std::chrono::durat
 {
     std::cout << "The copy process is finished." << std::endl;
     std::cout << convert_to_gb_from_long_int(current_size) << " of " << gb_size << " GB has been copied" << std::endl;
-    std::cout << "Now, you can extract the drive " + drive_letter << std::endl;
+    if (drive_type == DRIVE_REMOVABLE) {
+        std::cout << "Now, you can extract the drive " + drive_letter.substr(0, drive_letter.size()-2) << std::endl;
+    }
 
     if (flag)
     {
@@ -385,7 +421,7 @@ void make_copy()
     }
     else
     {
-        std::cout << BHIRED << "\nYou need to select a drive letter, a directory and a maximum space." << std::endl;
+        std::cout << BHIRED << "\nYou need to select a directory to copy and a path where make the copy" << std::endl;
     }
 
     clear_display_banner_and_menu();
