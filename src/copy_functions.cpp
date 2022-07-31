@@ -70,17 +70,18 @@ void select_backup_options()
         std::cout << "\nSelect directory where save the copy (e.g.: D:\\Data): ";
         std::getline(std::cin, copy_full_path);
         drive_letter = copy_full_path.front();
-    
+        
         if (!drive_letter_found(drive_letter)) {
             exit = false;
         } else {
             if (copy_full_path.size() == 1) { 
                 copy_full_path.append(":");
                 std::cout << "\nThe copy will be made to the root directory of " + copy_full_path + " drive";
-                std::cout << "\nPress enter to continue";
+                std::cout << "\n\nPress enter to continue";
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 exit = true;
-            } else {
+            } 
+            else if (copy_full_path[1] == ':') {
                 if (!is_path_exist(copy_full_path)) {
                     std::string response_pe;
                     std::cout << "\nThe directory " + copy_full_path + " does not exists, do you want create the directory? [Y/n]: ";
@@ -159,6 +160,7 @@ long long int generate_current_vector_files(std::vector<std::string> &current_fi
     while (!files.empty())
     {
         std::string current_file = files.at(i);
+        
         long long current_size = files_sizes.at(i);
         total_files_sizes = total_files_sizes + current_size;
 
@@ -175,6 +177,7 @@ long long int generate_current_vector_files(std::vector<std::string> &current_fi
             files.erase(files.begin() + i);
             files_sizes.erase(files_sizes.begin() + i);
             current_files.push_back(current_file);
+            i = 0; /* Restart the counter */ 
         }
     }
 
@@ -299,7 +302,6 @@ std::chrono::duration<double> copy_files(std::vector<std::string> current_files,
     for (int i = 0; i < current_files.size(); i++)
     {
         std::string new_path_file = generate_path_file_backup(current_files.at(i), num);
-
         generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage, new_path_file, first_output, current_files, i);
 
         if (!CopyFileA(current_files.at(i).c_str(), new_path_file.c_str(), 0))
@@ -383,25 +385,27 @@ void make_copy()
         std::cout << "\nTotal size of copy: " << std::fixed << std::setprecision(2) << gb_size << " GB\n"
                   << std::endl;
 
-        GetDiskFreeSpaceExA(drive_letter.c_str(), NULL, NULL, &total_number_of_free_bytes);
-        double gb_drive = convert_to_gigabytes(total_number_of_free_bytes);
+        
         int num = get_num_real_directory(directory_path);
 
         int index = 0;
         long long int total_size = 0;
         bool end = false;
         bool flag = false;
-
+        
         std::cout << "Press enter to start the copy process..." << std::endl;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
+        
         while (!end)
         {
             std::vector<std::string> current_files;
-            
+
+            GetDiskFreeSpaceExA(drive_letter.c_str(), NULL, NULL, &total_number_of_free_bytes);
+            double gb_drive = convert_to_gigabytes(total_number_of_free_bytes);
+
             long long int current_size = generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
-            
-            if (current_size <= total_number_of_free_bytes.QuadPart) /* Check if there is enough space in the drive */ 
+
+            if (current_size != 0) /* If there is nothing to copy, there is not enough space */
             {
                 total_size = total_size + current_size;
                 generate_directories_structure(num, directories);
@@ -426,6 +430,8 @@ void make_copy()
     else
     {
         std::cout << BHIRED << "\nYou need to select a directory to copy and a path where make the copy" << std::endl;
+        std::cout << WHITE << "\nPress enter to continue";
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
 
     clear_display_banner_and_menu();
