@@ -48,6 +48,7 @@ void display_banner(bool slow)
 /* Clear and display banner and current menu */
 void clear_display_banner_and_menu() {
     system("clear");
+    system("cls");
     display_banner(false);
 }
 

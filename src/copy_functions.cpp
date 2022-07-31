@@ -160,7 +160,7 @@ long long int generate_current_vector_files(std::vector<std::string> &current_fi
     while (!files.empty())
     {
         std::string current_file = files.at(i);
-        
+
         long long current_size = files_sizes.at(i);
         total_files_sizes = total_files_sizes + current_size;
 
@@ -234,16 +234,6 @@ std::string generate_path_file_backup(std::string current_path, int num)
     return new_path;
 }
 
-/* Convert long long int bytes to double gigabytes */
-double convert_to_gb_from_long_int(long long int size)
-{
-    double kb_size = size / 1024;
-    double mb_size = kb_size / 1024;
-    double gb_size = mb_size / 1024;
-
-    return gb_size;
-}
-
 /* Convert mb to long int */
 double convert_to_mb_from_long_int(long long int size)
 {
@@ -253,46 +243,75 @@ double convert_to_mb_from_long_int(long long int size)
     return mb_size;
 }
 
+/* Convert long long int bytes to double gigabytes */
+double convert_to_gb_from_long_int(long long int size)
+{
+    double gb_size = convert_to_mb_from_long_int(size) / 1024;
+    return gb_size;
+}
+
+
 /* Add space characters to avoid output overwrite */
 std::string add_space_characters(int index, std::vector<std::string> current_files, int current_file_length)
 {
-    int previous_file_length = current_files.at(index - 1).length();
-    int diff = previous_file_length - current_file_length;
-
     std::string str = "";
 
-    if (diff > 0) /* Only add spaces characters if previous file path is larger than the current file path */
-    {
-        for (int i = 0; i < diff; i++) /* Add the diff number spaces characters */
+    if (index != 0) {
+        int previous_file_length = current_files.at(index - 1).length();
+        int diff = previous_file_length - current_file_length;
+
+        if (diff > 0) /* Only add spaces characters if previous file path is larger than the current file path */
         {
-            str.append(" ");
+            for (int i = 0; i < diff; i++) /* Add the diff number spaces characters */
+            {
+                str.append(" ");
+            }
         }
     }
-
+   
     return str;
 }
 
-/* Generate a percentage of the current copy process */
-void generate_dynamic_percentage(long long gb_size, long long int current_filesize, double &percentage,
-                                 std::string new_path_file, bool &first_output, std::vector<std::string> current_files, int index)
-{
-    percentage = percentage + (convert_to_gb_from_long_int(current_filesize) * 100) / (convert_to_gb_from_long_int(gb_size));
+/* Reduce the length of the path file to fix output copying process */
+std::string reduce_new_path_file_length(std::string current_file) {
+    
+    int final_position;
+    
+    if (current_file.size() > 70) {
+        for (int i = current_file.size()-1; i > 0 ; i--) {
+            if (current_file[i] == '\\') {
+                final_position = i;
+                break;
+            }
+        }
+        int number_char_to_delete = current_file.size() - 70;
+        int start_position = final_position - number_char_to_delete;
+        
+        current_file.erase(start_position, number_char_to_delete);
+        current_file.insert(start_position, "...");
+    }
 
-    if (first_output)
-    {
-        first_output = false;
-        std::cout << "Progress: " << std::fixed << std::setprecision(2) << percentage << " %" << std::endl;
-        std::cout << "Copying file " << new_path_file << "... (" << index << "/" << current_files.size() - 1 << ")" << std::endl;
+    return current_file;
+}
+
+/* Generate a percentage of the current copy process */
+void generate_dynamic_percentage(long long total_size, long long int current_filesize, double &percentage,
+                                 std::string current_file, bool &first_output, std::vector<std::string> current_files, int index, bool mb)
+{
+    if (mb) {
+        percentage = percentage + (convert_to_mb_from_long_int(current_filesize) * 100) / (convert_to_mb_from_long_int(total_size));
+    } else {
+        percentage = percentage + (convert_to_gb_from_long_int(current_filesize) * 100) / (convert_to_gb_from_long_int(total_size));
     }
-    else
-    {
-        std::cout << "\033[FCopying file " << new_path_file << "... (" << index << "/" << current_files.size() - 1 << ")" << add_space_characters(index, current_files, new_path_file.length());
-        std::cout << "\033[FProgress: " << std::fixed << std::setprecision(2) << percentage << " %\n\n";
-    }
+    
+    std::string current_file_reduced = reduce_new_path_file_length(current_file);
+
+    std::cout << "\033[F[" << std::fixed << std::setprecision(2) << percentage << " %] " << "Copying file " << current_file_reduced << "... (" << index << "/" 
+            << current_files.size() - 1 << ")" << add_space_characters(index, current_files, current_file_reduced.length()) << "\n";
 }
 
 /* Perform the copy of current files on the vector */
-std::chrono::duration<double> copy_files(std::vector<std::string> current_files, std::vector<long long int> files_sizes_aux, int num, long long int gb_size, int &index)
+std::chrono::duration<double> copy_files(std::vector<std::string> current_files, std::vector<long long int> files_sizes_aux, int num, long long int total_size, int &index, bool mb)
 {
     double percentage = 0;
     bool first_output = true;
@@ -302,7 +321,7 @@ std::chrono::duration<double> copy_files(std::vector<std::string> current_files,
     for (int i = 0; i < current_files.size(); i++)
     {
         std::string new_path_file = generate_path_file_backup(current_files.at(i), num);
-        generate_dynamic_percentage(gb_size, files_sizes_aux.at(index), percentage, new_path_file, first_output, current_files, i);
+        generate_dynamic_percentage(total_size, files_sizes_aux.at(index), percentage, current_files.at(i), first_output, current_files, i, mb);
 
         if (!CopyFileA(current_files.at(i).c_str(), new_path_file.c_str(), 0))
         {
@@ -320,7 +339,6 @@ std::chrono::duration<double> copy_files(std::vector<std::string> current_files,
 /* Convert elapsed time to minutes if is necessary */
 void get_elapsed_time(double elapsed_time)
 {
-
     if (elapsed_time > 60)
     {
         int minutes = elapsed_time / 60;
@@ -335,29 +353,28 @@ void get_elapsed_time(double elapsed_time)
 }
 
 /* Print information about copy process */
-void pause(double gb_size, long long current_size, bool flag, std::chrono::duration<double> elapsed)
+void pause(double total_real_size, bool mb, long long current_size, bool flag, std::chrono::duration<double> elapsed)
 {
     std::cout << "The copy process is finished." << std::endl;
-    std::cout << convert_to_gb_from_long_int(current_size) << " of " << gb_size << " GB has been copied" << std::endl;
+    if (mb) {
+        std::cout << convert_to_mb_from_long_int(current_size) << " of " << total_real_size << " MB has been copied\n" << std::endl;
+    } else {
+        std::cout << convert_to_gb_from_long_int(current_size) << " of " << total_real_size << " GB has been copied\n" << std::endl;
+    }
+    
     if (drive_type == DRIVE_REMOVABLE) {
         std::cout << "Now, you can extract the drive " + drive_letter.substr(0, drive_letter.size()-2) << std::endl;
     }
 
-    if (flag)
-    {
-        std::cout << "All copies have been completed successfully" << std::endl;
-        get_elapsed_time(elapsed.count());
-        std::cout << "Write speed: " << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size) / elapsed.count() << " MB/s" << std::endl;
-        std::cout << "\nPress enter to exit";
-    }
-    else
-    {
-        std::cout << "Before continue copying the next files, make sure you have delete the previous copy" << std::endl;
-        get_elapsed_time(elapsed.count());
-        std::cout << "Write speed: " << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size) / elapsed.count() << " MB/s" << std::endl;
-        std::cout << "\nPress enter to continue";
+    if (flag) {
+        std::cout << "\nAll copies have been completed successfully" << std::endl;
+    } else {
+        std::cout << "\nBefore continue copying the next files, make sure you have delete the previous copy" << std::endl;
     }
 
+    get_elapsed_time(elapsed.count());
+    std::cout << "Write speed: " << std::fixed << std::setprecision(2) << convert_to_mb_from_long_int(current_size) / elapsed.count() << " MB/s" << std::endl;
+    std::cout << "\nPress enter to continue";
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
@@ -382,10 +399,22 @@ void make_copy()
         }
 
         double gb_size = convert_to_gb_from_long_int(size);
-        std::cout << "\nTotal size of copy: " << std::fixed << std::setprecision(2) << gb_size << " GB\n"
-                  << std::endl;
+        double mb_size = convert_to_mb_from_long_int(size);
+        double total_real_size;
+        bool mb;
 
-        
+        if (gb_size < 1.00) {
+            std::cout << "\nTotal size of copy: " << std::fixed << std::setprecision(2) << mb_size << " MB\n"
+                << std::endl;
+            total_real_size = mb_size;
+            mb = true;
+        } else {
+            std::cout << "\nTotal size of copy: " << std::fixed << std::setprecision(2) << gb_size << " GB\n"
+                << std::endl;
+            total_real_size = gb_size;
+            mb = false;
+        }
+
         int num = get_num_real_directory(directory_path);
 
         int index = 0;
@@ -409,7 +438,7 @@ void make_copy()
             {
                 total_size = total_size + current_size;
                 generate_directories_structure(num, directories);
-                std::chrono::duration<double> elapsed = copy_files(current_files, files_sizes_aux, num, total_size, index);
+                std::chrono::duration<double> elapsed = copy_files(current_files, files_sizes_aux, num, total_size, index, mb);
 
                 if (total_size >= size)
                 {
@@ -417,7 +446,7 @@ void make_copy()
                     flag = true;
                 }
 
-                pause(gb_size, total_size, flag, elapsed);
+                pause(total_real_size, mb, total_size, flag, elapsed);
             } 
             else 
             {
