@@ -15,6 +15,7 @@
 std::string drive_letter;
 std::string copy_full_path;
 std::string directory_path;
+std::vector<bool> bitmap_files;
 
 /* Check all attributes values to print if contain smth */
 void check_current_attrs_values()
@@ -63,7 +64,6 @@ bool drive_letter_found(std::string d_letter)
 /* Request drive letter to user */
 void select_backup_options()
 {
-
     bool exit = false;
     do 
     {
@@ -142,6 +142,7 @@ long long int list_all_files(std::string directory_path, std::vector<std::string
         else
         {
             files.push_back(path);
+            bitmap_files.push_back(0);
             files_sizes.push_back(std::filesystem::file_size(path));
             total_size = total_size + std::filesystem::file_size(path);
         }
@@ -156,29 +157,75 @@ long long int generate_current_vector_files(std::vector<std::string> &current_fi
 {
     long long int total_files_sizes = 0;
     int i = 0;
-    
+    int bitmap_counter = 0;
+    std::string read_bitmap; 
+    bool go = false;
+
+    if (is_path_exist("bitmap.txt")) {
+        std::ifstream read_file("bitmap.txt");
+        std::getline(read_file, read_bitmap);
+        
+        //std::cout << read_bitmap.size() << std::endl;
+        for (int j = 0; j < read_bitmap.size(); j++) {
+            
+            std::stringstream ss;
+            int num;
+            ss << read_bitmap[j];
+            ss >> num;
+            bitmap_files[j] = num;
+            //std::cout << "numero: " << bitmap_files[j] << std::endl;
+        }
+        read_file.close();
+    }
+
+
     while (!files.empty())
     {
-        std::string current_file = files.at(i);
+        if (bitmap_files[bitmap_counter] == 0) {
 
-        long long current_size = files_sizes.at(i);
-        total_files_sizes = total_files_sizes + current_size;
+       
+            std::string current_file = files.at(i);
 
-        if (total_files_sizes >= total_number_of_free_bytes)
-        {
-            total_files_sizes = total_files_sizes - current_size;
-            i++;
-            if (i > files.size()-1) {
-                break;
+        //if (go) {
+
+            long long current_size = files_sizes.at(i);
+            total_files_sizes = total_files_sizes + current_size;
+
+            if (total_files_sizes >= total_number_of_free_bytes)
+            {
+                total_files_sizes = total_files_sizes - current_size;
+                i++;
+                if (i > files.size()-1) {
+                    //if (!files.empty()) {
+                    //    next_file_to_copy = files.at(0);
+                    //}
+                    break;
+                }
             }
+            else
+            {
+                bitmap_files[bitmap_counter] = 1;   
+                files.erase(files.begin() + i);
+                files_sizes.erase(files_sizes.begin() + i);
+                current_files.push_back(current_file);
+                i = 0; /* Restart the counter */ 
+            }
+
+        } else {
+            files.erase(files.begin());
         }
-        else
-        {
-            files.erase(files.begin() + i);
-            files_sizes.erase(files_sizes.begin() + i);
-            current_files.push_back(current_file);
-            i = 0; /* Restart the counter */ 
-        }
+        
+        bitmap_counter++;       
+        //}
+        /*
+        else {
+            if (read_next_file == current_file) {
+                go = true;
+            } else {
+                files.erase(files.begin());
+                i++;
+            }
+        }*/
     }
 
     return total_files_sizes;
@@ -378,6 +425,23 @@ void pause(double total_real_size, bool mb, long long current_size, bool flag, s
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
+/* Check if bitmap vector have all files at 1 (copied) */
+bool all_files_copy(std::vector<bool> files) {
+    bool all_copy = false;
+    int counter = 0;
+    for (int i = 0; i < files.size(); i++) {
+        if (files[i] == 1) {
+            counter++;
+        }
+    }
+
+    if (counter == files.size()) {
+        all_copy = true;
+    }
+
+    return all_copy;
+}
+
 /* Main function to make copy */
 void make_copy()
 {
@@ -421,7 +485,8 @@ void make_copy()
         long long int total_size = 0;
         bool end = false;
         bool flag = false;
-        
+        std::chrono::duration<double> elapsed;
+
         std::cout << "Press enter to start the copy process..." << std::endl;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         
@@ -438,7 +503,7 @@ void make_copy()
             {
                 total_size = total_size + current_size;
                 generate_directories_structure(num, directories);
-                std::chrono::duration<double> elapsed = copy_files(current_files, files_sizes_aux, num, total_size, index, mb);
+                elapsed = copy_files(current_files, files_sizes_aux, num, total_size, index, mb);
 
                 if (total_size >= size)
                 {
@@ -446,14 +511,32 @@ void make_copy()
                     flag = true;
                 }
 
+                if (!flag) {
+                    std::ofstream file("bitmap.txt");
+                    for (int i = 0; i < bitmap_files.size(); i++ ) {
+                        file << bitmap_files[i];
+                    }
+                    file.close();
+                }
+
                 pause(total_real_size, mb, total_size, flag, elapsed);
-            } 
+            }
             else 
             {
-                std::cout << "There is not enough space (" << gb_drive << " GB free) for make the copy (" 
+                if (all_files_copy(bitmap_files)) {
+                    flag = true;
+                    end = true;
+                    pause(total_real_size, mb, total_size, flag, elapsed);
+                } else {
+                    std::cout << "There is not enough space (" << gb_drive << " GB free) for make the copy (" 
                             << convert_to_gb_from_long_int(current_size) << " GB)";
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');       
+                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  
+                }
             }
+        }
+
+        if (is_path_exist("bitmap.txt")) {
+            remove("bitmap.txt");
         }
     }
     else
