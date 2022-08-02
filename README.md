@@ -1,8 +1,10 @@
 # File splitter by size
-This script will divide in folders a selected set data by a given size. Very useful for perform backups in a limited drives.
+This software helps making backup copies when the backup storage drive is not enough for whole copy, like USB sticks.
 
-## How to use
-The main use of this program is for perfom backups to others machines using drives that doesn't have enough space to storage all the data, so you will have manually select the files and directories that suit into the drive and repeat this until all data is copied. This program split the files and directories in diferent folders in a logical way, that is the folders structure will not change, the program just read all the files and selected until the maximum size indicated by the user. Also it can perform the copies.
+## How it works
+The main use is to move data to other computers using a external drive that can't storage the whole backup itself. This software will automatically fill the external drive with the data until the maximum storage limit. Once the first copy is done, you can use other external drive to continue with the copy, or use the same external drive when it have enough space. The copy will continue from the last copied file, even if you close the software. 
+
+The information of the copy process is storage in a file in the `data` folder. Each copy will have his own file, with an identifier generated with a md5 hash from the source folder copy. This file will contain a bitmap of all files listed of the source folder, where 0 value means not copied and 1 value means copied.
 
 ### Win32 API
 This program only works for Windows OS because it's use the [Win32 API](https://docs.microsoft.com/en-us/windows/win32/api/) for some funcionalities. Maybe in the future I will code it for Linux systems.

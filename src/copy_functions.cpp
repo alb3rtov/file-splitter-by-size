@@ -182,7 +182,7 @@ long long int generate_current_vector_files(std::vector<std::string> &current_fi
         i++;    
     }
 
-    std::ofstream file(md5_copy_id);
+    std::ofstream file("data/" + md5_copy_id);
     for (int k = 0; k < bitmap_files.size(); k++ ) {
         file << bitmap_files[k];
     }
@@ -418,15 +418,23 @@ void make_copy()
         md5_copy_id = md5(directory_path);
         size = list_all_files(directory_path, files, files_sizes, directories);
         
-        if (!is_path_exist(md5_copy_id)) {
-            std::ofstream file(md5_copy_id);
+        if (!CreateDirectoryA("data", 0))
+        {
+            if (GetLastError() != ERROR_ALREADY_EXISTS)
+            {
+                std::cout << "Error: " << GetLastError() << std::endl;
+            }
+        }
+
+        if (!is_path_exist("data/" + md5_copy_id)) {
+            std::ofstream file("data/" + md5_copy_id);
             for (int i = 0; i < bitmap_files.size(); i++ ) {
                 
                 file << bitmap_files[i];
             }
             file.close();
         } else {
-            std::ifstream read_file(md5_copy_id);
+            std::ifstream read_file("data/" + md5_copy_id);
             std::string read_bitmap; 
             std::getline(read_file, read_bitmap);
             
@@ -495,10 +503,6 @@ void make_copy()
                     flag = true;
                 }
 
-                //if (!flag) {
-
-                //}
-
                 pause(total_real_size, mb, total_size, flag, elapsed);
             }
             else 
@@ -521,8 +525,9 @@ void make_copy()
             }
         }
 
-        if (is_path_exist(md5_copy_id)) {
-            remove(md5_copy_id.c_str());
+        if (is_path_exist("data/" + md5_copy_id)) {
+            std::string path_to_delete = "data/" + md5_copy_id;
+            remove(path_to_delete.c_str());
         }
     }
     else
