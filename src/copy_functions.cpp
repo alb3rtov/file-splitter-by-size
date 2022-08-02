@@ -10,11 +10,13 @@
 #include <limits>
 #include <chrono>
 
+#include "md5.cpp"
 #include "..\include\definitions.hpp"
 
 std::string drive_letter;
 std::string copy_full_path;
 std::string directory_path;
+std::string md5_copy_id;
 std::vector<bool> bitmap_files;
 
 /* Check all attributes values to print if contain smth */
@@ -157,76 +159,34 @@ long long int generate_current_vector_files(std::vector<std::string> &current_fi
 {
     long long int total_files_sizes = 0;
     int i = 0;
-    int bitmap_counter = 0;
-    std::string read_bitmap; 
-    bool go = false;
 
-    if (is_path_exist("bitmap.txt")) {
-        std::ifstream read_file("bitmap.txt");
-        std::getline(read_file, read_bitmap);
-        
-        //std::cout << read_bitmap.size() << std::endl;
-        for (int j = 0; j < read_bitmap.size(); j++) {
-            
-            std::stringstream ss;
-            int num;
-            ss << read_bitmap[j];
-            ss >> num;
-            bitmap_files[j] = num;
-            //std::cout << "numero: " << bitmap_files[j] << std::endl;
-        }
-        read_file.close();
-    }
-
-
-    while (!files.empty())
-    {
-        if (bitmap_files[bitmap_counter] == 0) {
-
-       
+    while (i < files.size())
+    {   
+        if (bitmap_files[i] == 0) {
+ 
             std::string current_file = files.at(i);
-
-        //if (go) {
-
             long long current_size = files_sizes.at(i);
             total_files_sizes = total_files_sizes + current_size;
-
+            //std::cout << "bm: " << bitmap_files[i] << " f: " << current_file << " s: " << std::fixed << std::setprecision(2) <<  (double) (current_size/1024)/1024 << std::endl;
+            std::cout << std::endl;
             if (total_files_sizes >= total_number_of_free_bytes)
             {
                 total_files_sizes = total_files_sizes - current_size;
-                i++;
-                if (i > files.size()-1) {
-                    //if (!files.empty()) {
-                    //    next_file_to_copy = files.at(0);
-                    //}
-                    break;
-                }
             }
             else
             {
-                bitmap_files[bitmap_counter] = 1;   
-                files.erase(files.begin() + i);
-                files_sizes.erase(files_sizes.begin() + i);
+                bitmap_files[i] = 1;   
                 current_files.push_back(current_file);
-                i = 0; /* Restart the counter */ 
             }
-
-        } else {
-            files.erase(files.begin());
-        }
-        
-        bitmap_counter++;       
-        //}
-        /*
-        else {
-            if (read_next_file == current_file) {
-                go = true;
-            } else {
-                files.erase(files.begin());
-                i++;
-            }
-        }*/
+        } 
+        i++;    
     }
+
+    std::ofstream file(md5_copy_id);
+    for (int k = 0; k < bitmap_files.size(); k++ ) {
+        file << bitmap_files[k];
+    }
+    file.close();
 
     return total_files_sizes;
 }
@@ -352,8 +312,8 @@ void generate_dynamic_percentage(long long total_size, long long int current_fil
     }
     
     std::string current_file_reduced = reduce_new_path_file_length(current_file);
-
-    std::cout << "\033[F[" << std::fixed << std::setprecision(2) << percentage << " %] " << "Copying file " << current_file_reduced << "... (" << index << "/" 
+    //\033[F
+    std::cout << "[" << std::fixed << std::setprecision(2) << percentage << " %] " << "Copying file " << current_file_reduced << "... (" << index << "/" 
             << current_files.size() - 1 << ")" << add_space_characters(index, current_files, current_file_reduced.length()) << "\n";
 }
 
@@ -455,7 +415,30 @@ void make_copy()
 
     if (!drive_letter.empty() && !directory_path.empty())
     {
+        md5_copy_id = md5(directory_path);
         size = list_all_files(directory_path, files, files_sizes, directories);
+        
+        if (!is_path_exist(md5_copy_id)) {
+            std::ofstream file(md5_copy_id);
+            for (int i = 0; i < bitmap_files.size(); i++ ) {
+                
+                file << bitmap_files[i];
+            }
+            file.close();
+        } else {
+            std::ifstream read_file(md5_copy_id);
+            std::string read_bitmap; 
+            std::getline(read_file, read_bitmap);
+            
+            for (int j = 0; j < read_bitmap.size(); j++) { 
+                std::stringstream ss;
+                int num;
+                ss << read_bitmap[j];
+                ss >> num;
+                bitmap_files[j] = num;  
+            }
+            read_file.close();
+        }
 
         for (int i = 0; i < files_sizes.size(); i++)
         {
@@ -496,6 +479,7 @@ void make_copy()
 
             GetDiskFreeSpaceExA(drive_letter.c_str(), NULL, NULL, &total_number_of_free_bytes);
             double gb_drive = convert_to_gigabytes(total_number_of_free_bytes);
+            double mb_drive = convert_to_megabytes(total_number_of_free_bytes);
 
             long long int current_size = generate_current_vector_files(current_files, files, files_sizes, total_number_of_free_bytes.QuadPart);
 
@@ -511,13 +495,9 @@ void make_copy()
                     flag = true;
                 }
 
-                if (!flag) {
-                    std::ofstream file("bitmap.txt");
-                    for (int i = 0; i < bitmap_files.size(); i++ ) {
-                        file << bitmap_files[i];
-                    }
-                    file.close();
-                }
+                //if (!flag) {
+
+                //}
 
                 pause(total_real_size, mb, total_size, flag, elapsed);
             }
@@ -528,15 +508,21 @@ void make_copy()
                     end = true;
                     pause(total_real_size, mb, total_size, flag, elapsed);
                 } else {
-                    std::cout << "There is not enough space (" << gb_drive << " GB free) for make the copy (" 
+                    if (mb) {
+                        std::cout << "There is not enough space (" << mb_drive << " MB free) for make the copy (" 
+                            << convert_to_mb_from_long_int(current_size) << " MB)";
+                    } else {
+                        std::cout << "There is not enough space (" << gb_drive << " GB free) for make the copy (" 
                             << convert_to_gb_from_long_int(current_size) << " GB)";
+                    }
+
                     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  
                 }
             }
         }
 
-        if (is_path_exist("bitmap.txt")) {
-            remove("bitmap.txt");
+        if (is_path_exist(md5_copy_id)) {
+            remove(md5_copy_id.c_str());
         }
     }
     else

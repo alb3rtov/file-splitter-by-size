@@ -16,14 +16,23 @@
 std::vector<std::string> drive_list;
 int drive_type;
 
-/* Returns a double of conversion of bytes to GB */
-double convert_to_gigabytes(ULARGE_INTEGER total_bytes) {
+/*  Returns a double of conversion of bytes to MB */
+double convert_to_megabytes(ULARGE_INTEGER total_bytes) {
     double kb = 0;
-	double mb = 0;
-	double gb = 0;
-
+    double mb = 0;
+    
     kb = total_bytes.QuadPart/1024;
     mb = kb/1024;
+
+    return mb;
+}
+
+/* Returns a double of conversion of bytes to GB */
+double convert_to_gigabytes(ULARGE_INTEGER total_bytes) {
+
+	double mb = convert_to_megabytes(total_bytes);
+	double gb = 0;
+
     gb = mb/1024;
 
     return gb;
