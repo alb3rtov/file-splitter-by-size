@@ -4,7 +4,6 @@
 #include <iostream>
 #include <string>
 #include <regex>
-#include <sys/stat.h>
 #include <filesystem>
 #include <math.h>
 #include <limits>
@@ -39,13 +38,6 @@ void check_current_attrs_values()
     {
         std::cout << BHIYELLOW << "\nCurrent selected directory path to copy: " << directory_path;
     }
-}
-
-/* Returns bool that indicates if a given path exists */
-bool is_path_exist(const std::string &s)
-{
-    struct stat buffer;
-    return (stat(s.c_str(), &buffer) == 0);
 }
 
 /* Check if input drive letter exists in the system */
@@ -89,13 +81,7 @@ void select_backup_options()
                     std::cout << "\nThe directory " + copy_full_path + " does not exists, do you want create the directory? [Y/n]: ";
                     std::getline(std::cin, response_pe);
                     if (response_pe == "Y" || response_pe == "y") {
-                        if (!CreateDirectoryA(copy_full_path.c_str(), 0))
-                        {
-                            if (GetLastError() != ERROR_ALREADY_EXISTS)
-                            {
-                                std::cout << "Error: " << GetLastError() << std::endl;
-                            }
-                        }
+                        create_directory(copy_full_path);
                         exit = true;
                     }
                 } else {
@@ -153,6 +139,15 @@ long long int list_all_files(std::string directory_path, std::vector<std::string
     return total_size;
 }
 
+/* Create bitmap file */
+void create_bitmap_file() {
+    std::ofstream file("data/" + md5_copy_id);
+    for (int i = 0; i < bitmap_files.size(); i++ ) {
+        file << bitmap_files[i];
+    }
+    file.close();
+}
+
 /* Generate current vector with files */
 long long int generate_current_vector_files(std::vector<std::string> &current_files, std::vector<std::string> &files,
                                             std::vector<long long int> &files_sizes, long long int total_number_of_free_bytes)
@@ -168,7 +163,7 @@ long long int generate_current_vector_files(std::vector<std::string> &current_fi
             long long current_size = files_sizes.at(i);
             total_files_sizes = total_files_sizes + current_size;
             //std::cout << "bm: " << bitmap_files[i] << " f: " << current_file << " s: " << std::fixed << std::setprecision(2) <<  (double) (current_size/1024)/1024 << std::endl;
-            std::cout << std::endl;
+            
             if (total_files_sizes >= total_number_of_free_bytes)
             {
                 total_files_sizes = total_files_sizes - current_size;
@@ -181,12 +176,8 @@ long long int generate_current_vector_files(std::vector<std::string> &current_fi
         } 
         i++;    
     }
-
-    std::ofstream file("data/" + md5_copy_id);
-    for (int k = 0; k < bitmap_files.size(); k++ ) {
-        file << bitmap_files[k];
-    }
-    file.close();
+    std::cout << "\n";
+    create_bitmap_file();  /* When first copy is done, create the current bitmap file */
 
     return total_files_sizes;
 }
@@ -210,26 +201,13 @@ void generate_directories_structure(int num, std::vector<std::string> directorie
 {
     std::string destination_folder = copy_full_path;
     std::string main_path = destination_folder.append(directory_path.substr(num, directory_path.size() - 1));
-   
-    if (!CreateDirectoryA(main_path.c_str(), 0))
-    {
-        if (GetLastError() != ERROR_ALREADY_EXISTS)
-        {
-            std::cout << "Error: " << GetLastError() << std::endl;
-        }
-    }
+    create_directory(main_path);
 
     for (int i = 0; i < directories.size(); i++)
     {
         std::string destination_folder_inside = copy_full_path;
         std::string new_path = destination_folder_inside.append(directories.at(i).substr(num, directories.at(i).size() - 1));
-        if (!CreateDirectoryA(new_path.c_str(), 0))
-        {
-            if (GetLastError() != ERROR_ALREADY_EXISTS)
-            {
-                std::cout << "Error: " << GetLastError() << std::endl;
-            }
-        }
+        create_directory(new_path);
     }
 }
 
@@ -240,23 +218,6 @@ std::string generate_path_file_backup(std::string current_path, int num)
     std::string new_path = destination_folder.append(current_path.substr(num, current_path.size() - 1));
     return new_path;
 }
-
-/* Convert mb to long int */
-double convert_to_mb_from_long_int(long long int size)
-{
-    double kb_size = size / 1024;
-    double mb_size = kb_size / 1024;
-
-    return mb_size;
-}
-
-/* Convert long long int bytes to double gigabytes */
-double convert_to_gb_from_long_int(long long int size)
-{
-    double gb_size = convert_to_mb_from_long_int(size) / 1024;
-    return gb_size;
-}
-
 
 /* Add space characters to avoid output overwrite */
 std::string add_space_characters(int index, std::vector<std::string> current_files, int current_file_length)
@@ -343,24 +304,8 @@ std::chrono::duration<double> copy_files(std::vector<std::string> current_files,
     return end - start;
 }
 
-/* Convert elapsed time to minutes if is necessary */
-void get_elapsed_time(double elapsed_time)
-{
-    if (elapsed_time > 60)
-    {
-        int minutes = elapsed_time / 60;
-        double d_minutes = elapsed_time / 60;
-        int seconds = (d_minutes - minutes) * 60;
-        std::cout << "Elapsed time: " << minutes << " minutes " << seconds << " seconds. ";
-    }
-    else
-    {
-        std::cout << "Elapsed time: " << elapsed_time << " seconds. ";
-    }
-}
-
 /* Print information about copy process */
-void pause(double total_real_size, bool mb, long long current_size, bool flag, std::chrono::duration<double> elapsed)
+void pause_copy(double total_real_size, bool mb, long long current_size, bool flag, std::chrono::duration<double> elapsed)
 {
     std::cout << "The copy process is finished." << std::endl;
     if (mb) {
@@ -402,6 +347,43 @@ bool all_files_copy(std::vector<bool> files) {
     return all_copy;
 }
 
+/* Get total real size of current copy (in MB or GB) */
+void get_total_size_of_copy(double gb_size, double mb_size, bool &mb, double &total_real_size) {
+    if (gb_size < 1.00) {
+        std::cout << "\nTotal size of copy: " << std::fixed << std::setprecision(2) << mb_size << " MB\n"
+            << std::endl;
+        total_real_size = mb_size;
+        mb = true;
+    } else {
+        std::cout << "\nTotal size of copy: " << std::fixed << std::setprecision(2) << gb_size << " GB\n"
+            << std::endl;
+        total_real_size = gb_size;
+        mb = false;
+    }
+}
+
+/* Fill bitmap with current copy values or create the new copy file */
+void generate_bitmap_files() {
+    create_directory("data");
+        
+    if (!is_path_exist("data/" + md5_copy_id)) {
+        create_bitmap_file();
+    } else {
+        std::ifstream read_file("data/" + md5_copy_id);
+        std::string read_bitmap; 
+        std::getline(read_file, read_bitmap);
+            
+        for (int j = 0; j < read_bitmap.size(); j++) { 
+            std::stringstream ss;
+            int num;
+            ss << read_bitmap[j];
+            ss >> num;
+            bitmap_files[j] = num;  
+        }
+        read_file.close();
+    }
+}
+
 /* Main function to make copy */
 void make_copy()
 {
@@ -417,36 +399,8 @@ void make_copy()
     {
         md5_copy_id = md5(directory_path);
         size = list_all_files(directory_path, files, files_sizes, directories);
-        
-        if (!CreateDirectoryA("data", 0))
-        {
-            if (GetLastError() != ERROR_ALREADY_EXISTS)
-            {
-                std::cout << "Error: " << GetLastError() << std::endl;
-            }
-        }
-
-        if (!is_path_exist("data/" + md5_copy_id)) {
-            std::ofstream file("data/" + md5_copy_id);
-            for (int i = 0; i < bitmap_files.size(); i++ ) {
-                
-                file << bitmap_files[i];
-            }
-            file.close();
-        } else {
-            std::ifstream read_file("data/" + md5_copy_id);
-            std::string read_bitmap; 
-            std::getline(read_file, read_bitmap);
-            
-            for (int j = 0; j < read_bitmap.size(); j++) { 
-                std::stringstream ss;
-                int num;
-                ss << read_bitmap[j];
-                ss >> num;
-                bitmap_files[j] = num;  
-            }
-            read_file.close();
-        }
+ 
+        generate_bitmap_files();
 
         for (int i = 0; i < files_sizes.size(); i++)
         {
@@ -458,17 +412,7 @@ void make_copy()
         double total_real_size;
         bool mb;
 
-        if (gb_size < 1.00) {
-            std::cout << "\nTotal size of copy: " << std::fixed << std::setprecision(2) << mb_size << " MB\n"
-                << std::endl;
-            total_real_size = mb_size;
-            mb = true;
-        } else {
-            std::cout << "\nTotal size of copy: " << std::fixed << std::setprecision(2) << gb_size << " GB\n"
-                << std::endl;
-            total_real_size = gb_size;
-            mb = false;
-        }
+        get_total_size_of_copy(gb_size, mb_size, mb, total_real_size);
 
         int num = get_num_real_directory(directory_path);
 
@@ -485,7 +429,7 @@ void make_copy()
         {
             std::vector<std::string> current_files;
 
-            GetDiskFreeSpaceExA(drive_letter.c_str(), NULL, NULL, &total_number_of_free_bytes);
+            GetDiskFreeSpaceExA(drive_letter.c_str(), NULL, NULL, &total_number_of_free_bytes); /* Get total free space of the selected drive */
             double gb_drive = convert_to_gigabytes(total_number_of_free_bytes);
             double mb_drive = convert_to_megabytes(total_number_of_free_bytes);
 
@@ -503,14 +447,14 @@ void make_copy()
                     flag = true;
                 }
 
-                pause(total_real_size, mb, total_size, flag, elapsed);
+                pause_copy(total_real_size, mb, total_size, flag, elapsed);
             }
             else 
             {
                 if (all_files_copy(bitmap_files)) {
                     flag = true;
                     end = true;
-                    pause(total_real_size, mb, total_size, flag, elapsed);
+                    pause_copy(total_real_size, mb, total_size, flag, elapsed);
                 } else {
                     if (mb) {
                         std::cout << "There is not enough space (" << mb_drive << " MB free) for make the copy (" 
@@ -525,6 +469,7 @@ void make_copy()
             }
         }
 
+        /* Delete copy file bitmap when is completely done */
         if (is_path_exist("data/" + md5_copy_id)) {
             std::string path_to_delete = "data/" + md5_copy_id;
             remove(path_to_delete.c_str());

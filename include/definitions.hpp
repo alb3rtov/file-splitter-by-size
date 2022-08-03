@@ -5,6 +5,7 @@
 #include <fstream>
 #include <thread>
 #include <vector>
+#include <sys/stat.h>
 
 #include "..\src\Menu.cpp"
 #include "..\include\colors.hpp"
@@ -37,6 +38,58 @@ double convert_to_gigabytes(ULARGE_INTEGER total_bytes) {
 
     return gb;
 }
+
+/* Convert mb to long int */
+double convert_to_mb_from_long_int(long long int size)
+{
+    double kb_size = size / 1024;
+    double mb_size = kb_size / 1024;
+
+    return mb_size;
+}
+
+/* Convert long long int bytes to double gigabytes */
+double convert_to_gb_from_long_int(long long int size)
+{
+    double gb_size = convert_to_mb_from_long_int(size) / 1024;
+    return gb_size;
+}
+
+/* Convert elapsed time to minutes if is necessary */
+void get_elapsed_time(double elapsed_time)
+{
+    if (elapsed_time > 60)
+    {
+        int minutes = elapsed_time / 60;
+        double d_minutes = elapsed_time / 60;
+        int seconds = (d_minutes - minutes) * 60;
+        std::cout << "Elapsed time: " << minutes << " minutes " << seconds << " seconds. ";
+    }
+    else
+    {
+        std::cout << "Elapsed time: " << elapsed_time << " seconds. ";
+    }
+}
+
+/* Returns bool that indicates if a given path exists */
+bool is_path_exist(const std::string &s)
+{
+    struct stat buffer;
+    return (stat(s.c_str(), &buffer) == 0);
+}
+
+/* Creates a directory of a given name/path */
+void create_directory(std::string directory) {
+    if (!CreateDirectoryA(directory.c_str(), 0))
+    {
+        if (GetLastError() != ERROR_ALREADY_EXISTS)
+        {
+            std::cout << "Error: " << GetLastError() << std::endl;
+        }
+    }
+}
+
+
 
 /* Display banner */
 void display_banner(bool slow)
