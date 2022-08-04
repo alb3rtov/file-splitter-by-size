@@ -2,8 +2,10 @@
 This software helps making backup copies when the backup storage drive is not enough for whole copy, like USB sticks.
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/40604222/182674767-d95edbe2-46e8-4338-9733-b43a1bd03142.gif" alt="animation" />
+<img src="https://user-images.githubusercontent.com/40604222/182697733-6c5228a3-b81e-4f2e-b381-46cc5164f720.gif" alt="animation" />
 </p>
+
+<!-- https://user-images.githubusercontent.com/40604222/182674767-d95edbe2-46e8-4338-9733-b43a1bd03142.gif -->
 
 ## How it works
 The main use is to move data to other computers using a external drive that can't storage the whole backup itself. This software will automatically fill the external drive with the data until the maximum storage limit. Once the first copy is done, you can use other external drive to continue with the copy, or use the same external drive when it have enough space. The copy will continue from the last copied file, even if you close the software. 
