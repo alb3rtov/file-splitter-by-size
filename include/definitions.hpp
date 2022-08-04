@@ -15,6 +15,9 @@
 #define KEY_ENTER '\r'      /* Enter key character */
 
 std::vector<std::string> drive_list;
+std::string drive_letter;
+std::string copy_full_path;
+std::string directory_path;
 int drive_type;
 
 /*  Returns a double of conversion of bytes to MB */
@@ -112,6 +115,144 @@ void clear_display_banner_and_menu() {
     system("clear");
     system("cls");
     display_banner(false);
+}
+
+/* Get type of drive */
+void DisplayDriveType(int iParam)
+{
+    switch (iParam)
+    {
+    case DRIVE_UNKNOWN:
+        std::cout << "Drive type unknown" << std::endl;
+        drive_type = DRIVE_UNKNOWN;
+        break;
+
+    case DRIVE_NO_ROOT_DIR:
+        std::cout << "No drive for that root path" << std::endl;
+        drive_type = DRIVE_NO_ROOT_DIR;
+        break;
+
+    case DRIVE_REMOVABLE:
+        std::cout << "Removable drive" << std::endl;
+        drive_type = DRIVE_REMOVABLE;
+        break;
+
+    case DRIVE_FIXED:
+        std::cout << "Fixed drive" << std::endl;
+        drive_type = DRIVE_FIXED;
+        break;
+
+    case DRIVE_REMOTE:
+        std::cout << "Network drive" << std::endl;
+        drive_type = DRIVE_REMOTE;
+        break;
+
+    case DRIVE_CDROM:
+        std::cout << "CD ROM drive" << std::endl;
+        drive_type = DRIVE_CDROM;
+        break;
+    }
+}
+
+/* Check all attributes values to print if contain smth */
+void check_current_attrs_values()
+{
+    std::cout << "\n\n\n\n\n\n\n"
+              << std::endl;
+
+    if (!drive_letter.empty())
+    {  
+        std::string fix_drive_letter = drive_letter.substr(0, drive_letter.size()-2);
+        std::cout << BHIYELLOW << "\nCurrent selected drive letter: " << fix_drive_letter;
+    }
+
+    if (!copy_full_path.empty()) {
+        std::cout << BHIYELLOW << "\nCurrent selected directory where make the copy: " << copy_full_path;
+    }
+
+    if (!directory_path.empty())
+    {
+        std::cout << BHIYELLOW << "\nCurrent selected directory path to copy: " << directory_path;
+    }
+}
+
+/* Display all logical drives information of the machine */
+void list_drives()
+{
+    TCHAR sz_buffer[256];
+    TCHAR *tch_ptr = sz_buffer;
+    GetLogicalDriveStrings(255, sz_buffer);
+
+    TCHAR sz_drive[] = _T(" A:");
+    DWORD u_drive_mask = GetLogicalDrives();
+
+    TCHAR tch_volume_name_buff[MAX_PATH + 1];
+
+    ULARGE_INTEGER total_number_of_bytes = {0};
+    ULARGE_INTEGER total_number_of_free_bytes = {0};
+
+    if (u_drive_mask == 0)
+    {
+        std::cout << "GetLogicalDrives() failed with failure code: " << GetLastError() << std::endl;
+    }
+
+    else
+    {
+        std::cout << "This machine has the following logical drives:\n" << std::endl;
+        std::cout << "Drive letter\tLabel\t\tTotal space\t\tFree space\t\tDrive type" << std::endl;
+        std::cout << "-----------------------------------------------------------------------------------------------" << std::endl;
+        while (u_drive_mask)
+        {
+            if (u_drive_mask & 1)  /* Use the bitwise AND, 1–available, 0-not available */
+            {
+                std::cout << sz_drive << "\t\t";
+                std::string drive_letter_str;
+                std::stringstream ss;
+                ss << sz_drive;
+                ss >> drive_letter_str;
+                drive_list.push_back(drive_letter_str);
+
+                GetVolumeInformation(tch_ptr, tch_volume_name_buff, MAX_PATH + 1, NULL, NULL, NULL, NULL, 0);
+                std::cout << tch_volume_name_buff << "\t\t";
+
+                GetDiskFreeSpaceEx(tch_ptr, NULL, &total_number_of_bytes, &total_number_of_free_bytes);
+                std::cout << std::fixed << std::setprecision(2) << convert_to_gigabytes(total_number_of_bytes) << " GB   " << "\t\t";
+                std::cout << std::fixed << std::setprecision(2) << convert_to_gigabytes(total_number_of_free_bytes) << " GB   " << "\t\t";
+
+                DisplayDriveType(GetDriveType(tch_ptr));
+                tch_ptr += _tcslen(tch_ptr) + 1;
+            }
+            ++sz_drive[1];
+            u_drive_mask >>= 1; /* shift the bitmask binary right */
+        }
+    }
+}
+
+/* Generate menu based on a Menu object */
+void create_generic_menu(Menu menu, bool move_output, bool first_menu) 
+{
+    int counter = 1;
+    bool running = true;
+    bool first_iteration = true;
+
+    while (running)
+    {  
+        if (first_iteration) 
+        {
+            first_iteration = false;
+            check_current_attrs_values();
+            if (first_menu) { /* Print drives first time */
+                //first_menu = false;
+                list_drives();
+            }
+        }
+        menu.display_options();
+        menu.check_last_input_character(counter, running, move_output);
+        menu.change_color_options(counter);
+    }
+
+    std::cout << WHITE << std::endl;
+    system("clear");
 }
 
 #endif

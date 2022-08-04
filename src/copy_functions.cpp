@@ -12,33 +12,8 @@
 #include "md5.cpp"
 #include "..\include\definitions.hpp"
 
-std::string drive_letter;
-std::string copy_full_path;
-std::string directory_path;
 std::string md5_copy_id;
 std::vector<bool> bitmap_files;
-
-/* Check all attributes values to print if contain smth */
-void check_current_attrs_values()
-{
-    std::cout << "\n\n\n\n\n\n\n"
-              << std::endl;
-
-    if (!drive_letter.empty())
-    {  
-        std::string fix_drive_letter = drive_letter.substr(0, drive_letter.size()-2);
-        std::cout << BHIYELLOW << "\nCurrent selected drive letter: " << fix_drive_letter;
-    }
-
-    if (!copy_full_path.empty()) {
-        std::cout << BHIYELLOW << "\nCurrent selected directory where make the copy: " << copy_full_path;
-    }
-
-    if (!directory_path.empty())
-    {
-        std::cout << BHIYELLOW << "\nCurrent selected directory path to copy: " << directory_path;
-    }
-}
 
 /* Check if input drive letter exists in the system */
 bool drive_letter_found(std::string d_letter) 
