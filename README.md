@@ -36,4 +36,4 @@ Now in order to compile and execute the program, type this commands:
     .\exec\main.exe
 
 ## Releases
-You can donwload an already compiled versions from [releases page](https://github.com/alb3rtov/file-splitter-by-size/releases).
+You can download an already compiled versions from [releases page](https://github.com/alb3rtov/file-splitter-by-size/releases).

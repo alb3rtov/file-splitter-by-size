@@ -92,8 +92,6 @@ void create_directory(std::string directory) {
     }
 }
 
-
-
 /* Display banner */
 void display_banner(bool slow)
 {
