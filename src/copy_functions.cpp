@@ -349,10 +349,11 @@ void generate_bitmap_files() {
         std::getline(read_file, read_bitmap);
             
         for (int j = 0; j < read_bitmap.size(); j++) { 
-            std::stringstream ss;
+            int num = convert_string_int(read_bitmap[j] + "");
+            /*std::stringstream ss;
             int num;
             ss << read_bitmap[j];
-            ss >> num;
+            ss >> num;*/
             bitmap_files[j] = num;  
         }
         read_file.close();

@@ -6,6 +6,7 @@
 #include <thread>
 #include <vector>
 #include <sys/stat.h>
+#include <regex>
 
 #include "..\src\Menu.cpp"
 #include "..\include\colors.hpp"
@@ -13,12 +14,40 @@
 #define KEY_UP 72           /* Up arrow character */
 #define KEY_DOWN 80         /* Down arrow character */
 #define KEY_ENTER '\r'      /* Enter key character */
+#define SEQUENTIAL 1
+#define PARARELL 2
 
 std::vector<std::string> drive_list;
+std::vector<std::string> drives_letters;
 std::string drive_letter;
 std::string copy_full_path;
 std::string directory_path;
+int type_copy;
 int drive_type;
+
+/* Convert string to int */
+int convert_string_int(std::string str) {
+    int num;
+    std::stringstream ss;
+    ss << str;
+    ss >> num;
+
+    return num;
+}
+
+/* Check if string is a number */
+bool is_digit(std::string x){
+    bool num;
+    std::regex e ("^-?\\d+");
+
+    if (std::regex_match (x,e)) {
+        num = true;
+    } else {
+        num = false;
+    }
+    
+    return num;
+}
 
 /*  Returns a double of conversion of bytes to MB */
 double convert_to_megabytes(ULARGE_INTEGER total_bytes) {
@@ -157,19 +186,24 @@ void check_current_attrs_values()
 {
     std::cout << "\n\n\n\n\n\n\n"
               << std::endl;
+    
+    if (type_copy == SEQUENTIAL || type_copy == PARARELL) {
+        for (int i = 0; i < drives_letters.size(); i++) {
+            std::string fix_drive_letter = drives_letters[i].substr(0, drives_letters[i].size()-2);
+            std::cout << BHIYELLOW << "\nSelected drive letter (" << i+1 << "): " << fix_drive_letter;
+        }
+    } else {
+        if (!drive_letter.empty()) {  
+            std::string fix_drive_letter = drive_letter.substr(0, drive_letter.size()-2);
+            std::cout << BHIYELLOW << "\nCurrent selected drive letter: " << fix_drive_letter;
+        }
 
-    if (!drive_letter.empty())
-    {  
-        std::string fix_drive_letter = drive_letter.substr(0, drive_letter.size()-2);
-        std::cout << BHIYELLOW << "\nCurrent selected drive letter: " << fix_drive_letter;
+        if (!copy_full_path.empty()) {
+            std::cout << BHIYELLOW << "\nCurrent selected directory where make the copy: " << copy_full_path;
+        }
     }
 
-    if (!copy_full_path.empty()) {
-        std::cout << BHIYELLOW << "\nCurrent selected directory where make the copy: " << copy_full_path;
-    }
-
-    if (!directory_path.empty())
-    {
+    if (!directory_path.empty()) {
         std::cout << BHIYELLOW << "\nCurrent selected directory path to copy: " << directory_path;
     }
 }
@@ -196,7 +230,7 @@ void list_drives()
 
     else
     {
-        std::cout << "This machine has the following logical drives:\n" << std::endl;
+        std::cout << "\nThis machine has the following logical drives:\n" << std::endl;
         std::cout << "Drive letter\tLabel\t\tTotal space\t\tFree space\t\tDrive type" << std::endl;
         std::cout << "-----------------------------------------------------------------------------------------------" << std::endl;
         while (u_drive_mask)

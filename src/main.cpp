@@ -16,18 +16,18 @@
 bool first_menu = true;
 
 /* Generate make copy menu */
-void make_copy_menu() {
+void make_simple_copy_menu() {
     std::vector<std::string> option_vector = {"1. Select backup options",
                                             "2. Select directory to copy",
-                                            "3. Make simple copy",
-                                            "4. Advanced copy settings",
-                                            "5. Back"};
+                                            "3. Start copy",
+                                            "4. Back"};
     std::vector<void (*)()> function_vector;
 
     function_vector.push_back(select_backup_options);
     function_vector.push_back(select_directory);
     function_vector.push_back(make_copy);
-    function_vector.push_back(advanced_copy_settings);
+
+    type_copy = 0;
 
     Menu second_menu(option_vector, function_vector);
     display_banner(false);
@@ -39,12 +39,14 @@ void make_copy_menu() {
 int main()
 {
     std::vector<std::string> option_vector = {"1. List all drives",
-                                              "2. Make a copy",
-                                              "3. Quit"};
+                                              "2. Make simple copy",
+                                              "3. Advanced copy settings",
+                                              "4. Quit"};
     std::vector<void (*)()> function_vector;
 
     function_vector.push_back(list_drives);
-    function_vector.push_back(make_copy_menu);
+    function_vector.push_back(make_simple_copy_menu);
+    function_vector.push_back(advanced_copy_settings);
 
     Menu main_menu(option_vector, function_vector);
     display_banner(true);

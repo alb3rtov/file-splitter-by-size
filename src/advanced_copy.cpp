@@ -4,45 +4,71 @@
 #include <iostream>
 #include "copy_functions.cpp"
 
-/* Menu for sequential copy */
+/* Create menu for sequential copy */
+void create_menu_sequential_copy() {
+
+    std::vector<std::string> option_vector = {"1. Select directory to copy",
+                                              "2. Start copy",
+                                              "3. Back"};
+    std::vector<void (*)()> function_vector;
+
+    function_vector.push_back(select_directory);
+    function_vector.push_back(make_copy);
+
+    Menu sequential_copy_menu(option_vector, function_vector);
+    display_banner(false);
+    create_generic_menu(sequential_copy_menu, false, false);
+    display_banner(false);
+}
+
+/* Set drive letters of external drives */
 void configure_sequential_copy() {
 
     std::string num_drives;
-    std::cout << "\n\nHow many drives will you use?: ";
-    std::getline(std::cin, num_drives);
 
-    std::cout << "\n\nConnect all the external drives and press enter...";
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    do {
+        std::cout << "\n\nHow many drives will you use?: ";
+        std::getline(std::cin, num_drives);
 
-    list_drives();
+    } while(!is_digit(num_drives));
 
-    std::cout << "\n\nChoose the drives letters";
-    
+    /*
     std::stringstream ss;
     int num;
     ss << num_drives;
     ss >> num;
+    */
+    int num = convert_string_int(num_drives);
 
-    std::vector<std::string> list_selected_drives;
+    std::cout << "\nConnect all the external drives and press enter...";
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-    for (int i = 0; i < num; i++) {
+    list_drives();
+
+    std::cout << "\n\nChoose the drives letters\n";
+
+    int cnt = 1;
+
+    while (num > 0) {
         std::string next_drive;
-        std::cout << "\n\nDrive letter number " << i+1 << ": ";
+        
+        std::cout << "\nDrive letter number " << cnt << ": ";
         std::getline(std::cin, next_drive);
-        list_selected_drives.push_back(next_drive);
+
+        if (drive_letter_found(next_drive)) {
+            num--;
+            cnt++;
+            drives_letters.push_back(next_drive);
+        } else {
+            std::cout << "\nDrive letter " << next_drive << " doesn't exists";
+        }
     }
-    
-    /* 
-    std::vector<std::string> option_vector = {"1. List all drives",
-                                              "2. Select directory to copy",
-                                              "3. Quit"};
-    std::vector<void (*)()> function_vector;*/
-    
-       
+
+    type_copy = SEQUENTIAL;
+    create_menu_sequential_copy();       
 }
 
-
-/**/
+/*  */
 void configure_pararell_copy() {
 
 }

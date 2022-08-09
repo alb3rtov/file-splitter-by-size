@@ -32,8 +32,8 @@ Make sure that it works executing `g++ --version` on your CMD. The output must b
 Now in order to compile and execute the program, type this commands:
 
     md exec/
-    g++ -std=c++17 -g -I include src\main.cpp -o exec\main.exe
-    .\exec\main.exe
+    g++ -std=c++17 -g -I include src\main.cpp -o exec\fsbs.exe
+    .\exec\fsbs.exe
 
 ## Releases
 You can download an already compiled versions from [releases page](https://github.com/alb3rtov/file-splitter-by-size/releases).
