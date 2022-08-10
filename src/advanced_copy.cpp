@@ -1,11 +1,11 @@
 #ifndef _ADVANCED_COPY_
-#define _ADVANCED_COPY__
+#define _ADVANCED_COPY_
 
 #include <iostream>
 #include "copy_functions.cpp"
 
 /* Create menu for sequential copy */
-void create_menu_sequential_copy() {
+void create_menu_advanced_copy() {
 
     std::vector<std::string> option_vector = {"1. Select directory to copy",
                                               "2. Start copy",
@@ -21,10 +21,10 @@ void create_menu_sequential_copy() {
     display_banner(false);
 }
 
-/* Set drive letters of external drives */
-void configure_sequential_copy() {
-
+/* Get drives letters where made the copy */
+void request_drives_letters() {
     std::string num_drives;
+    drives_letters.clear();
 
     do {
         std::cout << "\n\nHow many drives will you use?: ";
@@ -32,12 +32,6 @@ void configure_sequential_copy() {
 
     } while(!is_digit(num_drives));
 
-    /*
-    std::stringstream ss;
-    int num;
-    ss << num_drives;
-    ss >> num;
-    */
     int num = convert_string_int(num_drives);
 
     std::cout << "\nConnect all the external drives and press enter...";
@@ -60,17 +54,23 @@ void configure_sequential_copy() {
             cnt++;
             drives_letters.push_back(next_drive);
         } else {
-            std::cout << "\nDrive letter " << next_drive << " doesn't exists";
+            std::cout << BHIRED << "Drive letter " << next_drive << " doesn't exists\n" << WHITE;
         }
     }
-
-    type_copy = SEQUENTIAL;
-    create_menu_sequential_copy();       
 }
 
-/*  */
-void configure_pararell_copy() {
+/* Configure sequential copy options */
+void configure_sequential_copy() {
+    request_drives_letters();
+    type_copy = SEQUENTIAL;
+    create_menu_advanced_copy();       
+}
 
+/* Configure pararell copy options */
+void configure_pararell_copy() {
+    request_drives_letters();
+    type_copy = PARARELL;
+    create_menu_advanced_copy();
 }
 
 /* Create a menu with advanced copy settings options */
